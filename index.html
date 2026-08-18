@@ -548,7 +548,10 @@
   <!-- TELA CATALOGO -->
   <div class="screen" id="screen-catalog">
     <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
-        <b>Gerenciar Cadastros</b>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button onclick="window.navigate('order')" style="background:rgba(255,255,255,0.2); color:var(--white); border:none; padding:6px 10px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer;">← Voltar</button>
+          <b>Cadastros</b>
+        </div>
         <div style="display:flex; gap:6px;">
           <button onclick="window.addRole()" style="background:var(--white); color:var(--red); border:none; padding:6px 10px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer;">+ ÁREA</button>
           <button onclick="window.addCategory()" style="background:var(--yellow); color:var(--gray-900); border:none; padding:6px 10px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer;">+ CATEGORIA</button>
@@ -650,7 +653,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let products = [], categories = [], roles = [], quantities = {}, user = '', userRole = '', date = '', editingId = null;
+let products = [], categories = [], roles = [], quantities = {}, user = '', userRole = 'TODAS', date = '', editingId = null;
 
 // --- FUNÇÕES CORE ---
 window.doLogin = () => {
@@ -697,12 +700,10 @@ function renderRolesDropdowns() {
   const defaultOption = `<option value="TODAS">Todas as Áreas (Geral)</option>`;
   const rolesOptions = roles.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
   
-  // Popula os selects de login e formulários de produtos
-  document.getElementById('login-role').innerHTML = `<option value="TODAS">Todas as Áreas (Visão Geral)</option>` + rolesOptions;
+  document.getElementById('login-role').innerHTML = defaultOption + rolesOptions;
   document.getElementById('new-role').innerHTML = defaultOption + rolesOptions;
   document.getElementById('edit-role').innerHTML = defaultOption + rolesOptions;
 
-  // Lista gerenciável de Áreas na aba PRODUTOS
   const container = document.getElementById('roles-list-container');
   if(roles.length === 0) {
     container.innerHTML = `<span style="font-size:12px; color:var(--gray-400);">Nenhuma área cadastrada. Clique em + ÁREA acima.</span>`;
@@ -819,20 +820,31 @@ window.chg = (id, v) => {
 // --- RENDERS ---
 
 function renderOrder() {
-  document.getElementById('order-info').textContent = `${user} (${userRole}) • ${date.split('-').reverse().join('/')}`;
+  const formattedDate = date ? date.split('-').reverse().join('/') : '';
+  document.getElementById('order-info').textContent = `${user || 'Usuário'} (${userRole}) • ${formattedDate}`;
   const cont = document.getElementById('order-products-scroller');
   
   if (categories.length === 0) {
-      cont.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhuma categoria ou produto cadastrado.</p>';
+      cont.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhuma categoria cadastrada.</p>';
       return;
   }
 
-  // Filtra produtos pela área selecionada pelo usuário no login (ou exibe todos se o login for 'TODAS')
-  const filteredProducts = products.filter(p => userRole === 'TODAS' || !p.role || p.role === 'TODAS' || p.role === userRole);
+  // Normalização para filtro estrito
+  const currentRole = (userRole || 'TODAS').trim().toUpperCase();
 
-  cont.innerHTML = categories.map(c => {
+  const filteredProducts = products.filter(p => {
+      const prodRole = (p.role || 'TODAS').trim().toUpperCase();
+      if (currentRole === 'TODAS') return true;
+      if (prodRole === 'TODAS') return true;
+      return prodRole === currentRole;
+  });
+
+  let totalVisible = 0;
+
+  const htmlContent = categories.map(c => {
       const pList = filteredProducts.filter(p => p.cat === c.name).sort((a,b) => (a.order||0) - (b.order||0));
       if (pList.length === 0) return '';
+      totalVisible += pList.length;
 
       return `
         <div class="order-cat-group">
@@ -851,6 +863,12 @@ function renderOrder() {
                 </div>`).join('')}
         </div>`;
   }).join('');
+
+  if (totalVisible === 0) {
+      cont.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum produto cadastrado para a área selecionada.</p>';
+  } else {
+      cont.innerHTML = htmlContent;
+  }
 }
 
 function renderCatalog() {
