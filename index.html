@@ -1,992 +1,143 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Salgados do Ponto — Pedidos</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --red: #C8191A;
-    --red-hover: #a61314;
-    --yellow: #F9D800;
-    --yellow-light: #FFFDE6;
-    --white: #ffffff;
-    --bg-app: #F4F5F7;
-    --gray-50: #f8fafc;
-    --gray-100: #f1f5f9;
-    --gray-200: #e2e8f0;
-    --gray-300: #cbd5e1;
-    --gray-400: #94a3b8;
-    --gray-600: #475569;
-    --gray-800: #1e293b;
-    --gray-900: #0f172a;
-    
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
-
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
-    --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
-  }
-
-  * { 
-    box-sizing: border-box; 
-    margin: 0; 
-    padding: 0; 
-    -webkit-tap-highlight-color: transparent; 
-  }
-
-  body { 
-    font-family: 'Nunito Sans', sans-serif; 
-    background: #e2e8f0; 
-    color: var(--gray-800);
-    display: flex; 
-    justify-content: center; 
-    min-height: 100vh;
-  }
-
-  .app { 
-    width: 100%; 
-    max-width: 480px; 
-    height: 100vh;
-    height: 100dvh;
-    background: var(--bg-app); 
-    display: flex; 
-    flex-direction: column; 
-    position: relative; 
-    box-shadow: 0 0 40px rgba(0,0,0,0.15);
-    overflow: hidden;
-  }
-
-  .screen { 
-    display: none; 
-    flex-direction: column; 
-    flex: 1; 
-    height: 100%;
-    overflow: hidden;
-  }
-
-  .screen.active { 
-    display: flex; 
-  }
-
-  .header { 
-    background: var(--red); 
-    padding: 16px 20px; 
-    color: var(--white); 
-    flex-shrink: 0; 
-    box-shadow: var(--shadow-md);
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-    z-index: 10;
-  }
-
-  .header b {
-    font-family: 'Nunito', sans-serif;
-    font-size: 18px;
-    font-weight: 800;
-    letter-spacing: -0.3px;
-  }
-
-  .body { 
-    flex: 1; 
-    overflow-y: auto; 
-    padding: 16px; 
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .nav { 
-    background: var(--white); 
-    display: flex; 
-    justify-content: space-around; 
-    padding: 10px 12px 14px 12px; 
-    flex-shrink: 0; 
-    border-top: 1px solid var(--gray-200);
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
-    z-index: 10;
-  }
-
-  .nav-item { 
-    color: var(--gray-400); 
-    font-family: 'Nunito', sans-serif;
-    font-weight: 800; 
-    font-size: 11px; 
-    letter-spacing: 0.5px;
-    cursor: pointer; 
-    text-align: center; 
-    padding: 8px 16px;
-    border-radius: var(--radius-md);
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .nav-item.active { 
-    color: var(--red); 
-    background: #fef2f2;
-  }
-
-  .btn { 
-    width: 100%; 
-    border: none; 
-    border-radius: var(--radius-md); 
-    padding: 14px 18px; 
-    font-size: 15px; 
-    font-weight: 800; 
-    cursor: pointer; 
-    font-family: 'Nunito', sans-serif; 
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .btn:active {
-    transform: scale(0.98);
-  }
-
-  .btn-primary { 
-    background: var(--red); 
-    color: var(--white); 
-  }
-
-  .btn-primary:hover {
-    background: var(--red-hover);
-  }
-
-  .btn-secondary { 
-    background: var(--white); 
-    color: var(--gray-800); 
-    border: 1.5px solid var(--gray-200); 
-  }
-
-  .field { 
-    margin-bottom: 14px; 
-  }
-
-  .field label { 
-    display: block; 
-    font-size: 11px; 
-    font-weight: 800; 
-    color: var(--gray-600); 
-    margin-bottom: 6px; 
-    text-transform: uppercase; 
-    letter-spacing: 0.5px;
-  }
-
-  .field input, .field select, .field textarea { 
-    width: 100%; 
-    border: 1.5px solid var(--gray-200); 
-    border-radius: var(--radius-md); 
-    padding: 12px 14px; 
-    font-size: 14px; 
-    font-family: inherit; 
-    background: var(--white);
-    color: var(--gray-900);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    outline: none;
-  }
-
-  .field input:focus, .field select:focus, .field textarea:focus {
-    border-color: var(--red);
-    box-shadow: 0 0 0 3px rgba(200, 25, 26, 0.1);
-  }
-
-  #screen-login {
-    background: var(--white);
-  }
-
-  .login-hero {
-    background: linear-gradient(135deg, var(--red) 0%, #900C0D 100%);
-    padding: 50px 24px 32px 24px;
-    text-align: center;
-    border-radius: 0 0 32px 32px;
-    box-shadow: var(--shadow-md);
-  }
-
-  .login-hero h1 {
-    color: var(--yellow);
-    font-family: 'Nunito', sans-serif;
-    font-weight: 900;
-    font-size: 28px;
-    letter-spacing: -0.5px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.15);
-  }
-
-  .login-hero p {
-    color: rgba(255,255,255,0.85);
-    font-size: 13px;
-    margin-top: 6px;
-    font-weight: 600;
-  }
-
-  .cat-group, .order-cat-group { 
-    margin-bottom: 20px; 
-  }
-
-  .cat-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    background: var(--white); 
-    padding: 10px 14px; 
-    border-radius: var(--radius-md); 
-    margin-bottom: 10px; 
-    border-left: 4px solid var(--red); 
-    box-shadow: var(--shadow-sm);
-  }
-
-  .order-cat-label { 
-    background: var(--white); 
-    color: var(--red); 
-    padding: 10px 14px; 
-    font-weight: 900; 
-    font-size: 12px; 
-    text-transform: uppercase; 
-    letter-spacing: 0.8px;
-    border-left: 4px solid var(--red); 
-    border-radius: var(--radius-sm); 
-    margin-top: 20px; 
-    margin-bottom: 10px; 
-    box-shadow: var(--shadow-sm);
-  }
-
-  .order-cat-label:first-child { 
-    margin-top: 0; 
-  }
-
-  .cat-title { 
-    font-size: 13px; 
-    font-weight: 800; 
-    color: var(--red); 
-  }
-
-  .product-item { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    padding: 14px 16px; 
-    background: var(--white);
-    border-radius: var(--radius-md);
-    margin-bottom: 8px;
-    box-shadow: var(--shadow-sm);
-    position: relative; 
-    border: 1px solid rgba(0,0,0,0.02);
-  }
-
-  .product-item b {
-    font-size: 14px;
-    color: var(--gray-800);
-  }
-
-  .unit-badge {
-    display: inline-block;
-    background: var(--gray-100);
-    color: var(--gray-600);
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    margin-top: 2px;
-  }
-
-  .role-badge {
-    display: inline-block;
-    background: #e0f2fe;
-    color: #0369a1;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 800;
-    margin-top: 2px;
-    text-transform: uppercase;
-  }
-
-  .qty-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--gray-100);
-    padding: 4px;
-    border-radius: var(--radius-xl);
-  }
-
-  .btn-qty {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    font-weight: 800;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s ease;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .btn-qty-minus {
-    background: var(--white);
-    color: var(--gray-800);
-  }
-
-  .btn-qty-plus {
-    background: var(--red);
-    color: var(--white);
-  }
-
-  .qty-val {
-    font-weight: 800;
-    font-size: 14px;
-    min-width: 22px;
-    text-align: center;
-    color: var(--gray-900);
-  }
-
-  .order-controls { 
-    display: flex; 
-    gap: 4px; 
-    align-items: center; 
-  }
-
-  .btn-order { 
-    background: var(--gray-100); 
-    border: none; 
-    border-radius: var(--radius-sm); 
-    width: 28px; 
-    height: 28px; 
-    font-size: 11px; 
-    cursor: pointer; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    color: var(--gray-600);
-    transition: background 0.2s;
-  }
-
-  .btn-order:hover { 
-    background: var(--gray-200); 
-  }
-
-  .menu-dots { 
-    cursor: pointer; 
-    padding: 6px 10px; 
-    font-size: 18px; 
-    color: var(--gray-400); 
-    border-radius: var(--radius-sm);
-  }
-
-  .dropdown { 
-    display: none; 
-    position: absolute; 
-    right: 10px; 
-    top: 42px; 
-    background: var(--white); 
-    box-shadow: var(--shadow-lg); 
-    border-radius: var(--radius-md); 
-    z-index: 20; 
-    width: 150px; 
-    overflow: hidden; 
-    border: 1px solid var(--gray-100);
-  }
-
-  .dropdown.active { 
-    display: block; 
-    animation: fadeIn 0.15s ease-out;
-  }
-
-  .dropdown-item { 
-    padding: 12px 14px; 
-    font-size: 13px; 
-    font-weight: 700; 
-    color: var(--gray-800); 
-    border-bottom: 1px solid var(--gray-100); 
-    cursor: pointer; 
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .dropdown-item:last-child {
-    border-bottom: none;
-  }
-
-  .dropdown-item:hover {
-    background: var(--gray-50);
-  }
-
-  .user-badge-bar {
-    background: rgba(255,255,255,0.15);
-    backdrop-filter: blur(5px);
-    border-radius: var(--radius-md);
-    padding: 6px 12px;
-    display: inline-block;
-    font-size: 12px;
-    font-weight: 800;
-    color: var(--yellow);
-    letter-spacing: 0.3px;
-  }
-
-  .edit-modal-overlay { 
-    display: none; 
-    position: fixed; 
-    inset: 0; 
-    background: rgba(15, 23, 42, 0.6); 
-    backdrop-filter: blur(4px);
-    z-index: 100; 
-    align-items: center; 
-    justify-content: center; 
-    padding: 16px;
-  }
-
-  .edit-modal-overlay.open { 
-    display: flex; 
-  }
-
-  .edit-modal { 
-    background: var(--white); 
-    padding: 24px; 
-    border-radius: var(--radius-lg); 
-    width: 100%; 
-    max-width: 400px; 
-    box-shadow: var(--shadow-lg);
-    animation: popUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .toast { 
-    position: fixed; 
-    bottom: 80px; 
-    left: 50%; 
-    transform: translateX(-50%) translateY(20px); 
-    background: var(--gray-900); 
-    color: var(--white); 
-    padding: 10px 20px; 
-    border-radius: var(--radius-xl); 
-    font-size: 13px; 
-    font-weight: 700;
-    opacity: 0; 
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
-    z-index: 999; 
-    box-shadow: var(--shadow-lg);
-    pointer-events: none;
-  }
-
-  .toast.show { 
-    opacity: 1; 
-    transform: translateX(-50%) translateY(0);
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes popUp {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Produtos por Área</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 0 20px;
+      background-color: #f4f6f8;
+    }
+    .card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 8px;
+    }
+    select {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      background: #eef2f5;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .badge {
+      background: #007bff;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .empty-msg {
+      color: #6c757d;
+      font-style: italic;
+    }
+  </style>
 </head>
-<body onclick="window.closeAllDropdowns(event)">
-<div class="app">
+<body>
 
-  <!-- TELA LOGIN -->
-  <div class="screen active" id="screen-login">
-    <div class="login-hero">
-      <h1>Salgados do Ponto.</h1>
-      <p>Gestão Prática de Pedidos</p>
-    </div>
-    <div class="body" style="padding-top:24px;">
-      <div class="field">
-        <label>Nome do Colaborador</label>
-        <input type="text" id="login-name" placeholder="Digite seu nome completo">
-      </div>
-      <div class="field">
-        <label>Sua Área / Setor</label>
-        <select id="login-role">
-          <!-- Preenchido dinamicamente via JS -->
-        </select>
-      </div>
-      <div class="field">
-        <label>Data</label>
-        <input type="date" id="login-date">
-      </div>
-      <button class="btn btn-primary" style="margin-top:10px;" onclick="window.doLogin()">Entrar no Sistema</button>
-    </div>
+  <div class="card">
+    <label for="seletorArea">Selecione a sua Área de Atuação:</label>
+    <select id="seletorArea" onchange="atualizarListaProdutos()">
+      <option value="">-- Nenhuma área selecionada --</option>
+      <option value="Confeitaria">Confeitaria</option>
+      <option value="Cozinha Quente">Cozinha Quente</option>
+      <option value="Limpeza">Limpeza</option>
+      <option value="Bar">Bar</option>
+    </select>
   </div>
 
-  <!-- TELA PEDIDO -->
-  <div class="screen" id="screen-order">
-    <div class="header">
-      <div id="order-info" class="user-badge-bar"></div>
-    </div>
-    <div class="body">
-      <div id="order-products-scroller"></div>
-      
-      <div class="field" style="margin-top:24px; padding-top:16px; border-top: 1px solid var(--gray-200);">
-        <label>Observação do Pedido</label>
-        <textarea id="order-obs" rows="2" placeholder="Ex: Avisar quando sair do forno..."></textarea>
-      </div>
-    </div>
-    <div style="padding:14px 16px; background:var(--white); border-top:1px solid var(--gray-200);">
-      <button class="btn btn-primary" onclick="window.navigate('review')">Revisar Pedido</button>
-    </div>
-    <div class="nav">
-      <div class="nav-item active" onclick="window.navigate('order')">PEDIDO</div>
-      <div class="nav-item" onclick="window.navigate('history')">HISTÓRICO</div>
-      <div class="nav-item" onclick="window.navigate('catalog')">PRODUTOS</div>
-    </div>
+  <div class="card">
+    <h2>Produtos da Página Inicial</h2>
+    <ul id="listaProdutos">
+      <!-- Os produtos serão renderizados aqui via JavaScript -->
+    </ul>
   </div>
 
-  <!-- TELA CATALOGO -->
-  <div class="screen" id="screen-catalog">
-    <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button onclick="window.navigate('order')" style="background:rgba(255,255,255,0.2); color:var(--white); border:none; padding:6px 10px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer;">← Voltar</button>
-          <b>Cadastros</b>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button onclick="window.addRole()" style="background:var(--white); color:var(--red); border:none; padding:6px 10px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer;">+ ÁREA</button>
-          <button onclick="window.addCategory()" style="background:var(--yellow); color:var(--gray-900); border:none; padding:6px 10px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer;">+ CATEGORIA</button>
-        </div>
-    </div>
-    <div class="body">
-      <!-- Gestão de Áreas Cadastradas -->
-      <div style="background:var(--white); padding:14px 16px; border-radius:var(--radius-md); margin-bottom:16px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
-        <label style="font-size:11px; font-weight:800; color:var(--gray-600); text-transform:uppercase;">Áreas / Setores da Empresa</label>
-        <div id="roles-list-container" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
-      </div>
+  <script>
+    // 1. Base de dados centralizada de produtos cadastrados com suas respectivas áreas
+    const todosOsProdutos = [
+      { id: 1, nome: 'Farinha', area: 'Confeitaria' },
+      { id: 2, nome: 'Fermento', area: 'Confeitaria' },
+      { id: 3, nome: 'Ovos', area: 'Confeitaria' },
+      { id: 4, nome: 'Açúcar Refinado', area: 'Confeitaria' },
+      { id: 5, nome: 'Molho de Tomate', area: 'Cozinha Quente' },
+      { id: 6, nome: 'Arroz', area: 'Cozinha Quente' },
+      { id: 7, nome: 'Detergente Industrial', area: 'Limpeza' },
+      { id: 8, nome: 'Desinfetante', area: 'Limpeza' },
+      { id: 9, nome: 'Vodka', area: 'Bar' },
+      { id: 10, nome: 'Gelo', area: 'Bar' }
+    ];
 
-      <!-- Formulário Novo Produto -->
-      <div style="background:var(--yellow-light); padding:16px; border-radius:var(--radius-md); margin-bottom:20px; border:1px solid #fef08a; box-shadow:var(--shadow-sm);">
-        <div class="field"><label>Novo Produto</label><input type="text" id="new-name" placeholder="Ex: Grampo 26/6 ou Coxinha"></div>
-        <div style="display:flex; gap:10px;">
-          <div class="field" style="flex:1;"><label>Categoria</label><select id="new-cat"></select></div>
-          <div class="field" style="flex:1;"><label>Unidade</label><select id="new-unit"><option>un</option><option>cx</option><option>fardo</option></select></div>
-        </div>
-        <div class="field">
-          <label>Área Destino</label>
-          <select id="new-role">
-            <!-- Preenchido via JS -->
-          </select>
-        </div>
-        <button class="btn btn-primary" onclick="window.addProduct()">Adicionar ao Banco</button>
-      </div>
-      <div id="catalog-grouped"></div>
-    </div>
-    <div class="nav">
-      <div class="nav-item" onclick="window.navigate('order')">PEDIDO</div>
-      <div class="nav-item" onclick="window.navigate('history')">HISTÓRICO</div>
-      <div class="nav-item active" onclick="window.navigate('catalog')">PRODUTOS</div>
-    </div>
-  </div>
-
-  <!-- TELA REVISÃO -->
-  <div class="screen" id="screen-review">
-    <div class="header"><b>Resumo Final</b></div>
-    <div class="body" id="review-body"></div>
-    <div style="padding:14px 16px; background:var(--white); border-top:1px solid var(--gray-200); display:flex; gap:10px;">
-      <button class="btn btn-secondary" onclick="window.navigate('order')">Voltar</button>
-      <button class="btn btn-primary" onclick="window.generateOrder()">Enviar WhatsApp</button>
-    </div>
-  </div>
-
-  <!-- TELA RESULTADO -->
-  <div class="screen" id="screen-result">
-    <div class="header"><b>Pronto!</b></div>
-    <div class="body">
-      <div id="result-message" style="background:var(--white); padding:16px; border-radius:var(--radius-md); border:1px solid var(--gray-200); white-space:pre-wrap; font-family:monospace; font-size:13px; margin-bottom:16px; box-shadow:var(--shadow-sm);"></div>
-      <button class="btn btn-primary" onclick="window.copyMessage()">Copiar Mensagem</button>
-      <button class="btn btn-secondary" style="margin-top:10px;" onclick="window.newOrder()">Novo Pedido</button>
-    </div>
-  </div>
-
-  <!-- TELA HISTÓRICO -->
-  <div class="screen" id="screen-history">
-    <div class="header"><b>Histórico de Pedidos</b></div>
-    <div class="body" id="history-body"></div>
-    <div class="nav">
-      <div class="nav-item" onclick="window.navigate('order')">PEDIDO</div>
-      <div class="nav-item active" onclick="window.navigate('history')">HISTÓRICO</div>
-      <div class="nav-item" onclick="window.navigate('catalog')">PRODUTOS</div>
-    </div>
-  </div>
-
-</div>
-
-<!-- MODAL EDITAR PRODUTO -->
-<div class="edit-modal-overlay" id="edit-overlay">
-  <div class="edit-modal">
-    <h3 style="margin-bottom:16px; font-family:'Nunito', sans-serif; font-weight:800; color:var(--gray-900);">Editar Produto</h3>
-    <div class="field"><label>Nome</label><input type="text" id="edit-name"></div>
-    <div class="field"><label>Categoria</label><select id="edit-cat"></select></div>
-    <div class="field"><label>Unidade</label><select id="edit-unit"><option>un</option><option>cx</option><option>fardo</option></select></div>
-    <div class="field"><label>Área Destino</label><select id="edit-role"></select></div>
-    <div style="display:flex; gap:10px; margin-top:20px;">
-      <button class="btn btn-secondary" onclick="window.closeEdit()">Cancelar</button>
-      <button class="btn btn-primary" onclick="window.saveEdit()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyA-B0kT2YjodcNeIV6-T3QV17wQkDTYqu0",
-  authDomain: "salgados-do-ponto-51c80.firebaseapp.com",
-  projectId: "salgados-do-ponto-51c80",
-  storageBucket: "salgados-do-ponto-51c80.firebasestorage.app",
-  appId: "1:340460030406:web:d60b6d0bbb40acdce5cac7"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-let products = [], categories = [], roles = [], quantities = {}, user = '', userRole = 'TODAS', date = '', editingId = null;
-
-// --- FUNÇÕES CORE ---
-window.doLogin = () => {
-  user = document.getElementById('login-name').value;
-  userRole = document.getElementById('login-role').value;
-  date = document.getElementById('login-date').value;
-  if(!user || !date || !userRole) return alert("Preencha nome, área e data");
-  window.navigate('order');
-};
-
-window.navigate = (s) => {
-  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-  document.getElementById('screen-'+s).classList.add('active');
-  if(s==='order') renderOrder();
-  if(s==='catalog') renderCatalog();
-  if(s==='history') renderHistory();
-};
-
-// --- ÁREAS / SETORES ---
-window.addRole = async () => {
-  const n = prompt("Nome da nova área (ex: Frente de Loja, Confeitaria, Salgaderia, Estoque, Escritório):");
-  if(n) {
-    await addDoc(collection(db, "roles"), { name: n, created: Date.now() });
-    showToast("Área criada!");
-  }
-};
-
-window.editRole = async (id, oldName) => {
-  const n = prompt("Novo nome para a área:", oldName);
-  if(n && n !== oldName) {
-    await updateDoc(doc(db, "roles", id), { name: n });
-    showToast("Área atualizada!");
-  }
-};
-
-window.delRole = async (id, name) => {
-  if(confirm(`Excluir a área "${name}"?`)) {
-    await deleteDoc(doc(db, "roles", id));
-    showToast("Área removida!");
-  }
-};
-
-function renderRolesDropdowns() {
-  const defaultOption = `<option value="TODAS">Todas as Áreas (Geral)</option>`;
-  const rolesOptions = roles.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
-  
-  document.getElementById('login-role').innerHTML = defaultOption + rolesOptions;
-  document.getElementById('new-role').innerHTML = defaultOption + rolesOptions;
-  document.getElementById('edit-role').innerHTML = defaultOption + rolesOptions;
-
-  const container = document.getElementById('roles-list-container');
-  if(roles.length === 0) {
-    container.innerHTML = `<span style="font-size:12px; color:var(--gray-400);">Nenhuma área cadastrada. Clique em + ÁREA acima.</span>`;
-    return;
-  }
-  container.innerHTML = roles.map(r => `
-    <span style="display:inline-flex; align-items:center; gap:6px; background:var(--gray-100); color:var(--gray-800); padding:4px 8px; border-radius:6px; font-size:12px; font-weight:700;">
-      ${r.name}
-      <span style="cursor:pointer;" onclick="window.editRole('${r.fbId}', '${r.name}')">✏️</span>
-      <span style="cursor:pointer; color:var(--red);" onclick="window.delRole('${r.fbId}', '${r.name}')">✕</span>
-    </span>
-  `).join('');
-}
-
-// --- CATEGORIAS ---
-window.addCategory = async () => {
-    const n = prompt("Nome da nova categoria:");
-    if(n) {
-        await addDoc(collection(db, "categories"), { name: n, order: categories.length, created: Date.now() });
-        showToast("Categoria criada!");
-    }
-};
-
-window.delCategory = async (id, name) => {
-    if(confirm(`Excluir a categoria "${name}"?`)) {
-        await deleteDoc(doc(db, "categories", id));
-        showToast("Categoria removida!");
-    }
-};
-
-window.moveCat = async (index, direction) => {
-    const newIndex = index + direction;
-    if(newIndex < 0 || newIndex >= categories.length) return;
-    const cat1 = categories[index];
-    const cat2 = categories[newIndex];
-    await updateDoc(doc(db, "categories", cat1.fbId), { order: newIndex });
-    await updateDoc(doc(db, "categories", cat2.fbId), { order: index });
-};
-
-// --- PRODUTOS ---
-window.addProduct = async () => {
-  const name = document.getElementById('new-name').value;
-  const cat = document.getElementById('new-cat').value;
-  const unit = document.getElementById('new-unit').value;
-  const role = document.getElementById('new-role').value || 'TODAS';
-  if(!name) return showToast("Digite o nome");
-  const id = 'p' + Date.now();
-  const catProds = products.filter(p => p.cat === cat);
-  await setDoc(doc(db, "products", id), { id, name, cat, unit, role, order: catProds.length });
-  document.getElementById('new-name').value = '';
-  showToast("Produto Salvo!");
-};
-
-window.moveProd = async (prodId, catName, direction) => {
-    const catProds = products.filter(p => p.cat === catName).sort((a,b) => a.order - b.order);
-    const index = catProds.findIndex(p => p.id === prodId);
-    const newIndex = index + direction;
-    if(newIndex < 0 || newIndex >= catProds.length) return;
-    const p1 = catProds[index];
-    const p2 = catProds[newIndex];
-    await updateDoc(doc(db, "products", p1.id), { order: p2.order || newIndex });
-    await updateDoc(doc(db, "products", p2.id), { order: p1.order || index });
-};
-
-window.toggleMenu = (e, id) => {
-    e.stopPropagation();
-    document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('active'));
-    document.getElementById('drop-'+id).classList.toggle('active');
-};
-
-window.closeAllDropdowns = () => {
-    document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('active'));
-};
-
-window.duplicateProduct = async (id) => {
-    const p = products.find(x => x.id === id);
-    const newId = 'p' + Date.now();
-    await setDoc(doc(db, "products", newId), { ...p, id: newId, name: p.name + " (Cópia)" });
-    showToast("Produto duplicado!");
-};
-
-window.openEdit = (id) => {
-    const p = products.find(x => x.id === id);
-    editingId = id;
-    document.getElementById('edit-name').value = p.name;
-    document.getElementById('edit-cat').value = p.cat;
-    document.getElementById('edit-unit').value = p.unit;
-    document.getElementById('edit-role').value = p.role || 'TODAS';
-    document.getElementById('edit-overlay').classList.add('open');
-};
-
-window.closeEdit = () => document.getElementById('edit-overlay').classList.remove('open');
-
-window.saveEdit = async () => {
-    const name = document.getElementById('edit-name').value;
-    const cat = document.getElementById('edit-cat').value;
-    const unit = document.getElementById('edit-unit').value;
-    const role = document.getElementById('edit-role').value;
-    await updateDoc(doc(db, "products", editingId), { name, cat, unit, role });
-    window.closeEdit();
-    showToast("Atualizado!");
-};
-
-window.delProduct = async (id) => {
-    if(confirm("Excluir produto?")) await deleteDoc(doc(db, "products", id));
-};
-
-window.chg = (id, v) => {
-  const n = (quantities[id] || 0) + v;
-  if(n <= 0) delete quantities[id]; else quantities[id] = n;
-  renderOrder();
-};
-
-// --- RENDERS ---
-
-function renderOrder() {
-  const formattedDate = date ? date.split('-').reverse().join('/') : '';
-  document.getElementById('order-info').textContent = `${user || 'Usuário'} (${userRole}) • ${formattedDate}`;
-  const cont = document.getElementById('order-products-scroller');
-  
-  if (categories.length === 0) {
-      cont.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhuma categoria cadastrada.</p>';
-      return;
-  }
-
-  // Normalização para filtro estrito
-  const currentRole = (userRole || 'TODAS').trim().toUpperCase();
-
-  const filteredProducts = products.filter(p => {
-      const prodRole = (p.role || 'TODAS').trim().toUpperCase();
-      if (currentRole === 'TODAS') return true;
-      if (prodRole === 'TODAS') return true;
-      return prodRole === currentRole;
-  });
-
-  let totalVisible = 0;
-
-  const htmlContent = categories.map(c => {
-      const pList = filteredProducts.filter(p => p.cat === c.name).sort((a,b) => (a.order||0) - (b.order||0));
-      if (pList.length === 0) return '';
-      totalVisible += pList.length;
-
-      return `
-        <div class="order-cat-group">
-            <div class="order-cat-label">${c.name}</div>
-            ${pList.map(p => `
-                <div class="product-item">
-                  <div>
-                    <b>${p.name}</b><br>
-                    <span class="unit-badge">${p.unit}</span>
-                  </div>
-                  <div class="qty-controls">
-                    <button class="btn-qty btn-qty-minus" onclick="window.chg('${p.id}', -1)">-</button>
-                    <span class="qty-val">${quantities[p.id] || 0}</span>
-                    <button class="btn-qty btn-qty-plus" onclick="window.chg('${p.id}', 1)">+</button>
-                  </div>
-                </div>`).join('')}
-        </div>`;
-  }).join('');
-
-  if (totalVisible === 0) {
-      cont.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum produto cadastrado para a área selecionada.</p>';
-  } else {
-      cont.innerHTML = htmlContent;
-  }
-}
-
-function renderCatalog() {
-    const cont = document.getElementById('catalog-grouped');
-    cont.innerHTML = categories.map((c, idx) => {
-        const pList = products.filter(p => p.cat === c.name).sort((a,b) => (a.order||0) - (b.order||0));
-        return `
-            <div class="cat-group">
-                <div class="cat-header">
-                    <span class="cat-title">${c.name}</span>
-                    <div class="order-controls">
-                        <button class="btn-order" onclick="window.moveCat(${idx}, -1)">▲</button>
-                        <button class="btn-order" onclick="window.moveCat(${idx}, 1)">▼</button>
-                        <button class="btn-order" style="color:var(--red)" onclick="window.delCategory('${c.fbId}', '${c.name}')">🗑️</button>
-                    </div>
-                </div>
-                ${pList.map(p => `
-                    <div class="product-item">
-                        <div style="display:flex; align-items:center; gap:12px;">
-                            <div class="order-controls" style="flex-direction:column; gap:2px;">
-                                <button class="btn-order" style="height:16px; width:22px; font-size:8px;" onclick="window.moveProd('${p.id}', '${c.name}', -1)">▲</button>
-                                <button class="btn-order" style="height:16px; width:22px; font-size:8px;" onclick="window.moveProd('${p.id}', '${c.name}', 1)">▼</button>
-                            </div>
-                            <div>
-                              <b>${p.name}</b><br>
-                              <span class="unit-badge">${p.unit}</span>
-                              <span class="role-badge">${p.role || 'TODAS'}</span>
-                            </div>
-                        </div>
-                        <div class="menu-dots" onclick="window.toggleMenu(event, '${p.id}')">⋮
-                            <div class="dropdown" id="drop-${p.id}">
-                                <div class="dropdown-item" onclick="window.openEdit('${p.id}')">✏️ Editar</div>
-                                <div class="dropdown-item" onclick="window.duplicateProduct('${p.id}')">📋 Duplicar</div>
-                                <div class="dropdown-item" style="color:var(--red)" onclick="window.delProduct('${p.id}')">🗑️ Excluir</div>
-                            </div>
-                        </div>
-                    </div>`).join('')}
-            </div>`;
-    }).join('');
-}
-
-function renderReview() {
-    let h = '';
-    categories.forEach(c => {
-        const items = products.filter(p => p.cat === c.name && quantities[p.id]);
-        if(items.length) {
-            h += `<div style="margin-top:16px; color:var(--red); font-weight:800; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;">${c.name}</div>`;
-            items.forEach(p => h += `
-              <div class="product-item" style="margin-top:6px; margin-bottom:0;">
-                <span>${p.name}</span>
-                <b>${quantities[p.id]} ${p.unit}</b>
-              </div>`);
-        }
-    });
-    document.getElementById('review-body').innerHTML = h || '<div style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum item selecionado no pedido.</div>';
-}
-
-window.generateOrder = async () => {
-  const obs = document.getElementById('order-obs').value;
-  let msg = `*PEDIDO SALGADOS DO PONTO*\n👤 *Colaborador:* ${user}\n🏷️ *Setor:* ${userRole}\n📅 *Data:* ${date.split('-').reverse().join('/')}\n`;
-  categories.forEach(c => {
-      const items = products.filter(p => p.cat === c.name && quantities[p.id]);
-      if(items.length > 0) {
-          msg += `\n🔹 *${c.name.toUpperCase()}*\n`;
-          items.forEach(p => msg += `• ${p.name}: ${quantities[p.id]} ${p.unit}\n`);
+    // 2. Função responsável por aplicar a regra de filtragem estrita
+    function obterProdutosPorArea(areaSelecionada) {
+      // Se nenhuma área for selecionada, retorna uma lista vazia
+      if (!areaSelecionada) {
+        return [];
       }
-  });
-  if(obs) msg += `\n📝 *OBSERVAÇÃO:* ${obs}`;
-  document.getElementById('result-message').textContent = msg;
-  await addDoc(collection(db, "history"), { user, userRole, date, msg, timestamp: Date.now() });
-  window.navigate('result');
-};
 
-window.copyMessage = () => {
-    navigator.clipboard.writeText(document.getElementById('result-message').textContent);
-    showToast("Copiado!");
-};
+      // Retorna APENAS os produtos vinculados à área escolhida
+      return todosOsProdutos.filter(produto => produto.area === areaSelecionada);
+    }
 
-window.newOrder = () => { quantities = {}; document.getElementById('order-obs').value = ''; window.navigate('order'); };
+    // 3. Função de renderização da interface
+    function atualizarListaProdutos() {
+      const seletor = document.getElementById('seletorArea');
+      const areaSelecionada = seletor.value;
+      const elementoLista = document.getElementById('listaProdutos');
 
-async function renderHistory() {
-    const snap = await getDocs(query(collection(db, "history"), orderBy("timestamp", "desc")));
-    document.getElementById('history-body').innerHTML = snap.docs.map(d => {
-      const data = d.data();
-      return `
-      <div style="background:var(--white); padding:14px 16px; border-radius:var(--radius-md); margin-bottom:10px; box-shadow:var(--shadow-sm); border:1px solid var(--gray-100); display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <b>${data.user}</b>
-          ${data.userRole ? `<br><span class="role-badge" style="font-size:9px;">${data.userRole}</span>` : ''}
-        </div>
-        <span style="font-size:12px; font-weight:700; color:var(--gray-600); background:var(--gray-100); padding:4px 8px; border-radius:6px;">${data.date}</span>
-      </div>`;
-    }).join('');
-}
+      const produtosFiltrados = obterProdutosPorArea(areaSelecionada);
 
-function showToast(m) { const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
+      // Limpa o conteúdo atual da lista
+      elementoLista.innerHTML = '';
 
-// Listeners Firebase
-onSnapshot(collection(db, "roles"), snap => {
-    roles = snap.docs.map(d => ({ ...d.data(), fbId: d.id }));
-    renderRolesDropdowns();
-    renderCatalog();
-});
+      // Caso nenhuma área esteja selecionada ou a lista filtrada seja vazia
+      if (produtosFiltrados.length === 0) {
+        if (!areaSelecionada) {
+          elementoLista.innerHTML = '<li class="empty-msg">Selecione uma área para visualizar os produtos correspondentes.</li>';
+        } else {
+          elementoLista.innerHTML = '<li class="empty-msg">Nenhum produto cadastrado para esta área.</li>';
+        }
+        return;
+      }
 
-onSnapshot(collection(db, "products"), snap => { 
-    products = snap.docs.map(d => ({ ...d.data(), fbId: d.id })); 
-    renderOrder(); renderCatalog(); 
-});
+      // Renderiza os produtos permitidos para a área selecionada
+      produtosFiltrados.forEach(produto => {
+        const item = document.createElement('li');
+        item.innerHTML = `
+          <span><strong>${produto.nome}</strong></span>
+          <span class="badge">${produto.area}</span>
+        `;
+        elementoLista.appendChild(item);
+      });
+    }
 
-onSnapshot(query(collection(db, "categories"), orderBy("order")), snap => { 
-    categories = snap.docs.map(d => ({ ...d.data(), fbId: d.id })); 
-    const html = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    document.getElementById('new-cat').innerHTML = html; 
-    document.getElementById('edit-cat').innerHTML = html;
-    renderOrder(); renderCatalog();
-});
+    // Inicialização da página
+    atualizarListaProdutos();
+  </script>
 
-document.getElementById('login-date').value = new Date().toISOString().split('T')[0];
-</script>
 </body>
 </html>
