@@ -73,7 +73,6 @@
     display: flex; 
   }
 
-  /* Header Estilo App Nativo */
   .header { 
     background: var(--red); 
     padding: 16px 20px; 
@@ -98,7 +97,6 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Bottom Navigation Bar */
   .nav { 
     background: var(--white); 
     display: flex; 
@@ -132,7 +130,6 @@
     background: #fef2f2;
   }
 
-  /* Componentes de Formulário & Botões */
   .btn { 
     width: 100%; 
     border: none; 
@@ -201,14 +198,13 @@
     box-shadow: 0 0 0 3px rgba(200, 25, 26, 0.1);
   }
 
-  /* Tela de Login Especial */
   #screen-login {
     background: var(--white);
   }
 
   .login-hero {
     background: linear-gradient(135deg, var(--red) 0%, #900C0D 100%);
-    padding: 60px 24px 40px 24px;
+    padding: 50px 24px 32px 24px;
     text-align: center;
     border-radius: 0 0 32px 32px;
     box-shadow: var(--shadow-md);
@@ -230,7 +226,6 @@
     font-weight: 600;
   }
 
-  /* Agrupamento de Categorias & Cards de Produtos */
   .cat-group, .order-cat-group { 
     margin-bottom: 20px; 
   }
@@ -301,7 +296,18 @@
     margin-top: 2px;
   }
 
-  /* Controles de Quantidade Ergonômicos (+ / -) */
+  .role-badge {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+
   .qty-controls {
     display: flex;
     align-items: center;
@@ -344,7 +350,6 @@
     color: var(--gray-900);
   }
 
-  /* Controles de Reordenação no Catálogo */
   .order-controls { 
     display: flex; 
     gap: 4px; 
@@ -370,7 +375,6 @@
     background: var(--gray-200); 
   }
 
-  /* Menu Dropdown de 3 Pontos */
   .menu-dots { 
     cursor: pointer; 
     padding: 6px 10px; 
@@ -418,7 +422,6 @@
     background: var(--gray-50);
   }
 
-  /* Card Informativo do Usuário / Data */
   .user-badge-bar {
     background: rgba(255,255,255,0.15);
     backdrop-filter: blur(5px);
@@ -431,7 +434,6 @@
     letter-spacing: 0.3px;
   }
 
-  /* Modais e Toasts */
   .edit-modal-overlay { 
     display: none; 
     position: fixed; 
@@ -501,10 +503,16 @@
       <h1>Salgados do Ponto.</h1>
       <p>Gestão Prática de Pedidos</p>
     </div>
-    <div class="body" style="padding-top:28px;">
+    <div class="body" style="padding-top:24px;">
       <div class="field">
         <label>Nome do Colaborador</label>
         <input type="text" id="login-name" placeholder="Digite seu nome completo">
+      </div>
+      <div class="field">
+        <label>Sua Área / Setor</label>
+        <select id="login-role">
+          <!-- Preenchido dinamicamente via JS -->
+        </select>
       </div>
       <div class="field">
         <label>Data</label>
@@ -540,15 +548,31 @@
   <!-- TELA CATALOGO -->
   <div class="screen" id="screen-catalog">
     <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
-        <b>Gerenciar Produtos</b>
-        <button onclick="window.addCategory()" style="background:var(--yellow); color:var(--gray-900); border:none; padding:6px 12px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer; box-shadow:var(--shadow-sm);">+ CATEGORIA</button>
+        <b>Gerenciar Cadastros</b>
+        <div style="display:flex; gap:6px;">
+          <button onclick="window.addRole()" style="background:var(--white); color:var(--red); border:none; padding:6px 10px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer;">+ ÁREA</button>
+          <button onclick="window.addCategory()" style="background:var(--yellow); color:var(--gray-900); border:none; padding:6px 10px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer;">+ CATEGORIA</button>
+        </div>
     </div>
     <div class="body">
+      <!-- Gestão de Áreas Cadastradas -->
+      <div style="background:var(--white); padding:14px 16px; border-radius:var(--radius-md); margin-bottom:16px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
+        <label style="font-size:11px; font-weight:800; color:var(--gray-600); text-transform:uppercase;">Áreas / Setores da Empresa</label>
+        <div id="roles-list-container" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+      </div>
+
+      <!-- Formulário Novo Produto -->
       <div style="background:var(--yellow-light); padding:16px; border-radius:var(--radius-md); margin-bottom:20px; border:1px solid #fef08a; box-shadow:var(--shadow-sm);">
-        <div class="field"><label>Novo Produto</label><input type="text" id="new-name" placeholder="Ex: Coxinha de Frango"></div>
+        <div class="field"><label>Novo Produto</label><input type="text" id="new-name" placeholder="Ex: Grampo 26/6 ou Coxinha"></div>
         <div style="display:flex; gap:10px;">
           <div class="field" style="flex:1;"><label>Categoria</label><select id="new-cat"></select></div>
           <div class="field" style="flex:1;"><label>Unidade</label><select id="new-unit"><option>un</option><option>cx</option><option>fardo</option></select></div>
+        </div>
+        <div class="field">
+          <label>Área Destino</label>
+          <select id="new-role">
+            <!-- Preenchido via JS -->
+          </select>
         </div>
         <button class="btn btn-primary" onclick="window.addProduct()">Adicionar ao Banco</button>
       </div>
@@ -594,13 +618,14 @@
 
 </div>
 
-<!-- MODAL EDITAR -->
+<!-- MODAL EDITAR PRODUTO -->
 <div class="edit-modal-overlay" id="edit-overlay">
   <div class="edit-modal">
     <h3 style="margin-bottom:16px; font-family:'Nunito', sans-serif; font-weight:800; color:var(--gray-900);">Editar Produto</h3>
     <div class="field"><label>Nome</label><input type="text" id="edit-name"></div>
     <div class="field"><label>Categoria</label><select id="edit-cat"></select></div>
     <div class="field"><label>Unidade</label><select id="edit-unit"><option>un</option><option>cx</option><option>fardo</option></select></div>
+    <div class="field"><label>Área Destino</label><select id="edit-role"></select></div>
     <div style="display:flex; gap:10px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="window.closeEdit()">Cancelar</button>
       <button class="btn btn-primary" onclick="window.saveEdit()">Salvar</button>
@@ -625,13 +650,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let products = [], categories = [], quantities = {}, user = '', date = '', editingId = null;
+let products = [], categories = [], roles = [], quantities = {}, user = '', userRole = '', date = '', editingId = null;
 
 // --- FUNÇÕES CORE ---
 window.doLogin = () => {
   user = document.getElementById('login-name').value;
+  userRole = document.getElementById('login-role').value;
   date = document.getElementById('login-date').value;
-  if(!user || !date) return alert("Preencha nome e data");
+  if(!user || !date || !userRole) return alert("Preencha nome, área e data");
   window.navigate('order');
 };
 
@@ -642,6 +668,54 @@ window.navigate = (s) => {
   if(s==='catalog') renderCatalog();
   if(s==='history') renderHistory();
 };
+
+// --- ÁREAS / SETORES ---
+window.addRole = async () => {
+  const n = prompt("Nome da nova área (ex: Frente de Loja, Confeitaria, Salgaderia, Estoque, Escritório):");
+  if(n) {
+    await addDoc(collection(db, "roles"), { name: n, created: Date.now() });
+    showToast("Área criada!");
+  }
+};
+
+window.editRole = async (id, oldName) => {
+  const n = prompt("Novo nome para a área:", oldName);
+  if(n && n !== oldName) {
+    await updateDoc(doc(db, "roles", id), { name: n });
+    showToast("Área atualizada!");
+  }
+};
+
+window.delRole = async (id, name) => {
+  if(confirm(`Excluir a área "${name}"?`)) {
+    await deleteDoc(doc(db, "roles", id));
+    showToast("Área removida!");
+  }
+};
+
+function renderRolesDropdowns() {
+  const defaultOption = `<option value="TODAS">Todas as Áreas (Geral)</option>`;
+  const rolesOptions = roles.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+  
+  // Popula os selects de login e formulários de produtos
+  document.getElementById('login-role').innerHTML = `<option value="TODAS">Todas as Áreas (Visão Geral)</option>` + rolesOptions;
+  document.getElementById('new-role').innerHTML = defaultOption + rolesOptions;
+  document.getElementById('edit-role').innerHTML = defaultOption + rolesOptions;
+
+  // Lista gerenciável de Áreas na aba PRODUTOS
+  const container = document.getElementById('roles-list-container');
+  if(roles.length === 0) {
+    container.innerHTML = `<span style="font-size:12px; color:var(--gray-400);">Nenhuma área cadastrada. Clique em + ÁREA acima.</span>`;
+    return;
+  }
+  container.innerHTML = roles.map(r => `
+    <span style="display:inline-flex; align-items:center; gap:6px; background:var(--gray-100); color:var(--gray-800); padding:4px 8px; border-radius:6px; font-size:12px; font-weight:700;">
+      ${r.name}
+      <span style="cursor:pointer;" onclick="window.editRole('${r.fbId}', '${r.name}')">✏️</span>
+      <span style="cursor:pointer; color:var(--red);" onclick="window.delRole('${r.fbId}', '${r.name}')">✕</span>
+    </span>
+  `).join('');
+}
 
 // --- CATEGORIAS ---
 window.addCategory = async () => {
@@ -673,10 +747,11 @@ window.addProduct = async () => {
   const name = document.getElementById('new-name').value;
   const cat = document.getElementById('new-cat').value;
   const unit = document.getElementById('new-unit').value;
+  const role = document.getElementById('new-role').value || 'TODAS';
   if(!name) return showToast("Digite o nome");
   const id = 'p' + Date.now();
   const catProds = products.filter(p => p.cat === cat);
-  await setDoc(doc(db, "products", id), { id, name, cat, unit, order: catProds.length });
+  await setDoc(doc(db, "products", id), { id, name, cat, unit, role, order: catProds.length });
   document.getElementById('new-name').value = '';
   showToast("Produto Salvo!");
 };
@@ -715,6 +790,7 @@ window.openEdit = (id) => {
     document.getElementById('edit-name').value = p.name;
     document.getElementById('edit-cat').value = p.cat;
     document.getElementById('edit-unit').value = p.unit;
+    document.getElementById('edit-role').value = p.role || 'TODAS';
     document.getElementById('edit-overlay').classList.add('open');
 };
 
@@ -724,7 +800,8 @@ window.saveEdit = async () => {
     const name = document.getElementById('edit-name').value;
     const cat = document.getElementById('edit-cat').value;
     const unit = document.getElementById('edit-unit').value;
-    await updateDoc(doc(db, "products", editingId), { name, cat, unit });
+    const role = document.getElementById('edit-role').value;
+    await updateDoc(doc(db, "products", editingId), { name, cat, unit, role });
     window.closeEdit();
     showToast("Atualizado!");
 };
@@ -742,7 +819,7 @@ window.chg = (id, v) => {
 // --- RENDERS ---
 
 function renderOrder() {
-  document.getElementById('order-info').textContent = `${user} • ${date.split('-').reverse().join('/')}`;
+  document.getElementById('order-info').textContent = `${user} (${userRole}) • ${date.split('-').reverse().join('/')}`;
   const cont = document.getElementById('order-products-scroller');
   
   if (categories.length === 0) {
@@ -750,8 +827,11 @@ function renderOrder() {
       return;
   }
 
+  // Filtra produtos pela área selecionada pelo usuário no login (ou exibe todos se o login for 'TODAS')
+  const filteredProducts = products.filter(p => userRole === 'TODAS' || !p.role || p.role === 'TODAS' || p.role === userRole);
+
   cont.innerHTML = categories.map(c => {
-      const pList = products.filter(p => p.cat === c.name).sort((a,b) => (a.order||0) - (b.order||0));
+      const pList = filteredProducts.filter(p => p.cat === c.name).sort((a,b) => (a.order||0) - (b.order||0));
       if (pList.length === 0) return '';
 
       return `
@@ -795,7 +875,9 @@ function renderCatalog() {
                                 <button class="btn-order" style="height:16px; width:22px; font-size:8px;" onclick="window.moveProd('${p.id}', '${c.name}', 1)">▼</button>
                             </div>
                             <div>
-                              <b>${p.name}</b> <span class="unit-badge">${p.unit}</span>
+                              <b>${p.name}</b><br>
+                              <span class="unit-badge">${p.unit}</span>
+                              <span class="role-badge">${p.role || 'TODAS'}</span>
                             </div>
                         </div>
                         <div class="menu-dots" onclick="window.toggleMenu(event, '${p.id}')">⋮
@@ -828,7 +910,7 @@ function renderReview() {
 
 window.generateOrder = async () => {
   const obs = document.getElementById('order-obs').value;
-  let msg = `*PEDIDO SALGADOS DO PONTO*\n👤 *Colaborador:* ${user}\n📅 *Data:* ${date.split('-').reverse().join('/')}\n`;
+  let msg = `*PEDIDO SALGADOS DO PONTO*\n👤 *Colaborador:* ${user}\n🏷️ *Setor:* ${userRole}\n📅 *Data:* ${date.split('-').reverse().join('/')}\n`;
   categories.forEach(c => {
       const items = products.filter(p => p.cat === c.name && quantities[p.id]);
       if(items.length > 0) {
@@ -838,7 +920,7 @@ window.generateOrder = async () => {
   });
   if(obs) msg += `\n📝 *OBSERVAÇÃO:* ${obs}`;
   document.getElementById('result-message').textContent = msg;
-  await addDoc(collection(db, "history"), { user, date, msg, timestamp: Date.now() });
+  await addDoc(collection(db, "history"), { user, userRole, date, msg, timestamp: Date.now() });
   window.navigate('result');
 };
 
@@ -851,16 +933,28 @@ window.newOrder = () => { quantities = {}; document.getElementById('order-obs').
 
 async function renderHistory() {
     const snap = await getDocs(query(collection(db, "history"), orderBy("timestamp", "desc")));
-    document.getElementById('history-body').innerHTML = snap.docs.map(d => `
+    document.getElementById('history-body').innerHTML = snap.docs.map(d => {
+      const data = d.data();
+      return `
       <div style="background:var(--white); padding:14px 16px; border-radius:var(--radius-md); margin-bottom:10px; box-shadow:var(--shadow-sm); border:1px solid var(--gray-100); display:flex; justify-content:space-between; align-items:center;">
-        <b>${d.data().user}</b>
-        <span style="font-size:12px; font-weight:700; color:var(--gray-600); background:var(--gray-100); padding:4px 8px; border-radius:6px;">${d.data().date}</span>
-      </div>`).join('');
+        <div>
+          <b>${data.user}</b>
+          ${data.userRole ? `<br><span class="role-badge" style="font-size:9px;">${data.userRole}</span>` : ''}
+        </div>
+        <span style="font-size:12px; font-weight:700; color:var(--gray-600); background:var(--gray-100); padding:4px 8px; border-radius:6px;">${data.date}</span>
+      </div>`;
+    }).join('');
 }
 
 function showToast(m) { const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
 
 // Listeners Firebase
+onSnapshot(collection(db, "roles"), snap => {
+    roles = snap.docs.map(d => ({ ...d.data(), fbId: d.id }));
+    renderRolesDropdowns();
+    renderCatalog();
+});
+
 onSnapshot(collection(db, "products"), snap => { 
     products = snap.docs.map(d => ({ ...d.data(), fbId: d.id })); 
     renderOrder(); renderCatalog(); 
