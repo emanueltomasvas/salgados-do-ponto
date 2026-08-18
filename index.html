@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -570,7 +569,7 @@
         <div class="field"><label>Novo Produto</label><input type="text" id="new-name" placeholder="Ex: Grampo 26/6 ou Coxinha"></div>
         <div style="display:flex; gap:10px;">
           <div class="field" style="flex:1;"><label>Categoria</label><select id="new-cat"></select></div>
-          <div class="field" style="flex:1;"><label>Unidade</label><select id="new-unit"><option>un</option><option>cx</option><option>fardo</option></select></div>
+          <div class="field" style="flex:1;"><label>Unidade</label><select id="new-unit"><option>un</option><option>cx</option><option>fardo</option><option>kg</option><option>g</option><option>l</option></select></div>
         </div>
         <div class="field">
           <label>Área Destino</label>
@@ -628,7 +627,7 @@
     <h3 style="margin-bottom:16px; font-family:'Nunito', sans-serif; font-weight:800; color:var(--gray-900);">Editar Produto</h3>
     <div class="field"><label>Nome</label><input type="text" id="edit-name"></div>
     <div class="field"><label>Categoria</label><select id="edit-cat"></select></div>
-    <div class="field"><label>Unidade</label><select id="edit-unit"><option>un</option><option>cx</option><option>fardo</option></select></div>
+    <div class="field"><label>Unidade</label><select id="edit-unit"><option>un</option><option>cx</option><option>fardo</option><option>kg</option><option>g</option><option>l</option></select></div>
     <div class="field"><label>Área Destino</label><select id="edit-role"></select></div>
     <div style="display:flex; gap:10px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="window.closeEdit()">Cancelar</button>
@@ -641,7 +640,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA-B0kT2YjodcNeIV6-T3QV17wQkDTYqu0",
@@ -655,6 +654,39 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let products = [], categories = [], roles = [], quantities = {}, user = '', userRole = 'TODAS', date = '', editingId = null;
+
+// Utility toast
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// Data listeners
+onSnapshot(query(collection(db, "roles")), snap => {
+  roles = snap.docs.map(d => ({ fbId: d.id, ...d.data() }));
+  renderRolesDropdowns();
+});
+
+onSnapshot(query(collection(db, "categories"), orderBy("order", "asc")), snap => {
+  categories = snap.docs.map(d => ({ fbId: d.id, ...d.data() }));
+  renderCatDropdowns();
+  if(document.getElementById('screen-catalog').classList.contains('active')) renderCatalog();
+  if(document.getElementById('screen-order').classList.contains('active')) renderOrder();
+});
+
+onSnapshot(collection(db, "products"), snap => {
+  products = snap.docs.map(d => ({ fbId: d.id, ...d.data() }));
+  if(document.getElementById('screen-catalog').classList.contains('active')) renderCatalog();
+  if(document.getElementById('screen-order').classList.contains('active')) renderOrder();
+});
+
+function renderCatDropdowns() {
+  const opts = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+  document.getElementById('new-cat').innerHTML = opts;
+  document.getElementById('edit-cat').innerHTML = opts;
+}
 
 // --- FUNÇÕES CORE ---
 window.doLogin = () => {
@@ -765,8 +797,8 @@ window.moveProd = async (prodId, catName, direction) => {
     if(newIndex < 0 || newIndex >= catProds.length) return;
     const p1 = catProds[index];
     const p2 = catProds[newIndex];
-    await updateDoc(doc(db, "products", p1.id), { order: p2.order || newIndex });
-    await updateDoc(doc(db, "products", p2.id), { order: p1.order || index });
+    await updateDoc(doc(db, "products", p1.fbId || p1.id), { order: p2.order || newIndex });
+    await updateDoc(doc(db, "products", p2.fbId || p2.id), { order: p1.order || index });
 };
 
 window.toggleMenu = (e, id) => {
@@ -788,7 +820,7 @@ window.duplicateProduct = async (id) => {
 
 window.openEdit = (id) => {
     const p = products.find(x => x.id === id);
-    editingId = id;
+    editingId = p.fbId || id;
     document.getElementById('edit-name').value = p.name;
     document.getElementById('edit-cat').value = p.cat;
     document.getElementById('edit-unit').value = p.unit;
@@ -809,7 +841,8 @@ window.saveEdit = async () => {
 };
 
 window.delProduct = async (id) => {
-    if(confirm("Excluir produto?")) await deleteDoc(doc(db, "products", id));
+    const p = products.find(x => x.id === id);
+    if(confirm("Excluir produto?")) await deleteDoc(doc(db, "products", p.fbId || id));
 };
 
 window.chg = (id, v) => {
@@ -830,13 +863,14 @@ function renderOrder() {
       return;
   }
 
-  // Normalização para filtro estrito
+  // Filtragem estrita por área selecionada no login
   const currentRole = (userRole || 'TODAS').trim().toUpperCase();
 
   const filteredProducts = products.filter(p => {
       const prodRole = (p.role || 'TODAS').trim().toUpperCase();
+      // Se o usuário selecionou 'TODAS', ele enxerga todos os produtos
       if (currentRole === 'TODAS') return true;
-      if (prodRole === 'TODAS') return true;
+      // Caso contrário, apenas exibe os produtos cuja área destino bate exatamente com a área selecionada
       return prodRole === currentRole;
   });
 
@@ -951,43 +985,20 @@ window.copyMessage = () => {
 window.newOrder = () => { quantities = {}; document.getElementById('order-obs').value = ''; window.navigate('order'); };
 
 async function renderHistory() {
-    const snap = await getDocs(query(collection(db, "history"), orderBy("timestamp", "desc")));
-    document.getElementById('history-body').innerHTML = snap.docs.map(d => {
-      const data = d.data();
-      return `
-      <div style="background:var(--white); padding:14px 16px; border-radius:var(--radius-md); margin-bottom:10px; box-shadow:var(--shadow-sm); border:1px solid var(--gray-100); display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <b>${data.user}</b>
-          ${data.userRole ? `<br><span class="role-badge" style="font-size:9px;">${data.userRole}</span>` : ''}
+    const snap = await onSnapshot(query(collection(db, "history"), orderBy("timestamp", "desc")), (snapshot) => {
+      const docs = snapshot.docs.map(d => d.data());
+      const cont = document.getElementById('history-body');
+      if (docs.length === 0) {
+        cont.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum histórico encontrado.</p>';
+        return;
+      }
+      cont.innerHTML = docs.map(h => `
+        <div style="background:var(--white); padding:14px; border-radius:var(--radius-md); margin-bottom:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
+          <div style="white-space:pre-wrap; font-family:monospace; font-size:12px; color:var(--gray-800);">${h.msg}</div>
         </div>
-        <span style="font-size:12px; font-weight:700; color:var(--gray-600); background:var(--gray-100); padding:4px 8px; border-radius:6px;">${data.date}</span>
-      </div>`;
-    }).join('');
+      `).join('');
+    });
 }
-
-function showToast(m) { const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
-
-// Listeners Firebase
-onSnapshot(collection(db, "roles"), snap => {
-    roles = snap.docs.map(d => ({ ...d.data(), fbId: d.id }));
-    renderRolesDropdowns();
-    renderCatalog();
-});
-
-onSnapshot(collection(db, "products"), snap => { 
-    products = snap.docs.map(d => ({ ...d.data(), fbId: d.id })); 
-    renderOrder(); renderCatalog(); 
-});
-
-onSnapshot(query(collection(db, "categories"), orderBy("order")), snap => { 
-    categories = snap.docs.map(d => ({ ...d.data(), fbId: d.id })); 
-    const html = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    document.getElementById('new-cat').innerHTML = html; 
-    document.getElementById('edit-cat').innerHTML = html;
-    renderOrder(); renderCatalog();
-});
-
-document.getElementById('login-date').value = new Date().toISOString().split('T')[0];
 </script>
 </body>
 </html>
