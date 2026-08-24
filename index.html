@@ -180,7 +180,7 @@
     letter-spacing: 0.5px;
   }
 
-  .field input, .field select, .field textarea { 
+  .field input[type="text"], .field input[type="date"], .field select, .field textarea { 
     width: 100%; 
     border: 1.5px solid var(--gray-200); 
     border-radius: var(--radius-md); 
@@ -196,6 +196,35 @@
   .field input:focus, .field select:focus, .field textarea:focus {
     border-color: var(--red);
     box-shadow: 0 0 0 3px rgba(200, 25, 26, 0.1);
+  }
+
+  .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--white);
+    padding: 10px 14px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray-800);
+    cursor: pointer;
+  }
+
+  .checkbox-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--red);
+    cursor: pointer;
   }
 
   #screen-login {
@@ -572,10 +601,10 @@
           <div class="field" style="flex:1;"><label>Unidade</label><select id="new-unit"><option>un</option><option>cx</option><option>fardo</option><option>kg</option><option>g</option><option>l</option></select></div>
         </div>
         <div class="field">
-          <label>Área Destino</label>
-          <select id="new-role">
+          <label>Áreas Destino (Selecione uma ou mais)</label>
+          <div id="new-roles-checkboxes" class="checkbox-group">
             <!-- Preenchido via JS -->
-          </select>
+          </div>
         </div>
         <button class="btn btn-primary" onclick="window.addProduct()">Adicionar ao Banco</button>
       </div>
@@ -628,7 +657,12 @@
     <div class="field"><label>Nome</label><input type="text" id="edit-name"></div>
     <div class="field"><label>Categoria</label><select id="edit-cat"></select></div>
     <div class="field"><label>Unidade</label><select id="edit-unit"><option>un</option><option>cx</option><option>fardo</option><option>kg</option><option>g</option><option>l</option></select></div>
-    <div class="field"><label>Área Destino</label><select id="edit-role"></select></div>
+    <div class="field">
+      <label>Áreas Destino (Selecione uma ou mais)</label>
+      <div id="edit-roles-checkboxes" class="checkbox-group">
+        <!-- Preenchido via JS -->
+      </div>
+    </div>
     <div style="display:flex; gap:10px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="window.closeEdit()">Cancelar</button>
       <button class="btn btn-primary" onclick="window.saveEdit()">Salvar</button>
@@ -667,6 +701,7 @@ function showToast(msg) {
 onSnapshot(query(collection(db, "roles")), snap => {
   roles = snap.docs.map(d => ({ fbId: d.id, ...d.data() }));
   renderRolesDropdowns();
+  if(document.getElementById('screen-catalog').classList.contains('active')) renderCatalog();
 });
 
 onSnapshot(query(collection(db, "categories"), orderBy("order", "asc")), snap => {
@@ -734,8 +769,34 @@ function renderRolesDropdowns() {
   const rolesOptions = roles.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
   
   document.getElementById('login-role').innerHTML = defaultOption + rolesOptions;
-  document.getElementById('new-role').innerHTML = defaultOption + rolesOptions;
-  document.getElementById('edit-role').innerHTML = defaultOption + rolesOptions;
+
+  const renderCheckboxes = (containerId, selectedRoles = ['TODAS']) => {
+    const isTodasChecked = selectedRoles.includes('TODAS');
+    let html = `
+      <label class="checkbox-item">
+        <input type="checkbox" value="TODAS" ${isTodasChecked ? 'checked' : ''} onchange="window.handleRoleCheckboxChange(this, '${containerId}')">
+        Todas as Áreas (Geral)
+      </label>
+    `;
+    html += roles.map(r => {
+      const isChecked = isTodasChecked || selectedRoles.includes(r.name);
+      return `
+        <label class="checkbox-item">
+          <input type="checkbox" value="${r.name}" ${isChecked ? 'checked' : ''} onchange="window.handleRoleCheckboxChange(this, '${containerId}')">
+          ${r.name}
+        </label>
+      `;
+    }).join('');
+    document.getElementById(containerId).innerHTML = html;
+  };
+
+  renderCheckboxes('new-roles-checkboxes');
+  
+  if (editingId) {
+    const p = products.find(x => (x.fbId || x.id) === editingId);
+    const pRoles = Array.isArray(p?.roles) ? p.roles : (p?.role ? [p.role] : ['TODAS']);
+    renderCheckboxes('edit-roles-checkboxes', pRoles);
+  }
 
   const container = document.getElementById('roles-list-container');
   if(roles.length === 0) {
@@ -749,6 +810,30 @@ function renderRolesDropdowns() {
       <span style="cursor:pointer; color:var(--red);" onclick="window.delRole('${r.fbId}', '${r.name}')">✕</span>
     </span>
   `).join('');
+}
+
+window.handleRoleCheckboxChange = (checkbox, containerId) => {
+  const container = document.getElementById(containerId);
+  const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+  
+  if (checkbox.value === 'TODAS' && checkbox.checked) {
+    checkboxes.forEach(cb => cb.checked = true);
+  } else if (checkbox.value === 'TODAS' && !checkbox.checked) {
+    checkboxes.forEach(cb => cb.checked = false);
+  } else {
+    if (!checkbox.checked) {
+      const todasCb = container.querySelector('input[value="TODAS"]');
+      if (todasCb) todasCb.checked = false;
+    }
+  }
+};
+
+function getSelectedRoles(containerId) {
+  const container = document.getElementById(containerId);
+  const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+  const values = Array.from(checkboxes).map(cb => cb.value);
+  if (values.includes('TODAS') || values.length === 0) return ['TODAS'];
+  return values;
 }
 
 // --- CATEGORIAS ---
@@ -781,11 +866,11 @@ window.addProduct = async () => {
   const name = document.getElementById('new-name').value;
   const cat = document.getElementById('new-cat').value;
   const unit = document.getElementById('new-unit').value;
-  const role = document.getElementById('new-role').value || 'TODAS';
+  const selectedRoles = getSelectedRoles('new-roles-checkboxes');
   if(!name) return showToast("Digite o nome");
   const id = 'p' + Date.now();
   const catProds = products.filter(p => p.cat === cat);
-  await setDoc(doc(db, "products", id), { id, name, cat, unit, role, order: catProds.length });
+  await setDoc(doc(db, "products", id), { id, name, cat, unit, roles: selectedRoles, role: selectedRoles.join(', '), order: catProds.length });
   document.getElementById('new-name').value = '';
   showToast("Produto Salvo!");
 };
@@ -824,18 +909,44 @@ window.openEdit = (id) => {
     document.getElementById('edit-name').value = p.name;
     document.getElementById('edit-cat').value = p.cat;
     document.getElementById('edit-unit').value = p.unit;
-    document.getElementById('edit-role').value = p.role || 'TODAS';
+    
+    const pRoles = Array.isArray(p.roles) ? p.roles : (p.role ? p.role.split(',').map(s=>s.trim()) : ['TODAS']);
+    
+    const renderCheckboxes = (containerId, selectedRoles) => {
+      const isTodasChecked = selectedRoles.includes('TODAS');
+      let html = `
+        <label class="checkbox-item">
+          <input type="checkbox" value="TODAS" ${isTodasChecked ? 'checked' : ''} onchange="window.handleRoleCheckboxChange(this, '${containerId}')">
+          Todas as Áreas (Geral)
+        </label>
+      `;
+      html += roles.map(r => {
+        const isChecked = isTodasChecked || selectedRoles.includes(r.name);
+        return `
+          <label class="checkbox-item">
+            <input type="checkbox" value="${r.name}" ${isChecked ? 'checked' : ''} onchange="window.handleRoleCheckboxChange(this, '${containerId}')">
+            ${r.name}
+          </label>
+        `;
+      }).join('');
+      document.getElementById(containerId).innerHTML = html;
+    };
+    
+    renderCheckboxes('edit-roles-checkboxes', pRoles);
     document.getElementById('edit-overlay').classList.add('open');
 };
 
-window.closeEdit = () => document.getElementById('edit-overlay').classList.remove('open');
+window.closeEdit = () => {
+  editingId = null;
+  document.getElementById('edit-overlay').classList.remove('open');
+};
 
 window.saveEdit = async () => {
     const name = document.getElementById('edit-name').value;
     const cat = document.getElementById('edit-cat').value;
     const unit = document.getElementById('edit-unit').value;
-    const role = document.getElementById('edit-role').value;
-    await updateDoc(doc(db, "products", editingId), { name, cat, unit, role });
+    const selectedRoles = getSelectedRoles('edit-roles-checkboxes');
+    await updateDoc(doc(db, "products", editingId), { name, cat, unit, roles: selectedRoles, role: selectedRoles.join(', ') });
     window.closeEdit();
     showToast("Atualizado!");
 };
@@ -867,11 +978,19 @@ function renderOrder() {
   const currentRole = (userRole || 'TODAS').trim().toUpperCase();
 
   const filteredProducts = products.filter(p => {
-      const prodRole = (p.role || 'TODAS').trim().toUpperCase();
-      // Se o usuário selecionou 'TODAS', ele enxerga todos os produtos
+      let prodRoles = [];
+      if (Array.isArray(p.roles)) {
+        prodRoles = p.roles.map(r => r.trim().toUpperCase());
+      } else if (p.role) {
+        prodRoles = p.role.split(',').map(r => r.trim().toUpperCase());
+      } else {
+        prodRoles = ['TODAS'];
+      }
+
+      // Se o usuário selecionou 'TODAS', enxerga todos os produtos
       if (currentRole === 'TODAS') return true;
-      // Caso contrário, apenas exibe os produtos cuja área destino bate exatamente com a área selecionada
-      return prodRole === currentRole;
+      // Caso contrário, exibe se o produto pertencer à área selecionada ou a 'TODAS'
+      return prodRoles.includes('TODAS') || prodRoles.includes(currentRole);
   });
 
   let totalVisible = 0;
@@ -920,7 +1039,9 @@ function renderCatalog() {
                         <button class="btn-order" style="color:var(--red)" onclick="window.delCategory('${c.fbId}', '${c.name}')">🗑️</button>
                     </div>
                 </div>
-                ${pList.map(p => `
+                ${pList.map(p => {
+                    const displayRoles = Array.isArray(p.roles) ? p.roles.join(', ') : (p.role || 'TODAS');
+                    return `
                     <div class="product-item">
                         <div style="display:flex; align-items:center; gap:12px;">
                             <div class="order-controls" style="flex-direction:column; gap:2px;">
@@ -930,7 +1051,7 @@ function renderCatalog() {
                             <div>
                               <b>${p.name}</b><br>
                               <span class="unit-badge">${p.unit}</span>
-                              <span class="role-badge">${p.role || 'TODAS'}</span>
+                              <span class="role-badge">${displayRoles}</span>
                             </div>
                         </div>
                         <div class="menu-dots" onclick="window.toggleMenu(event, '${p.id}')">⋮
@@ -940,7 +1061,8 @@ function renderCatalog() {
                                 <div class="dropdown-item" style="color:var(--red)" onclick="window.delProduct('${p.id}')">🗑️ Excluir</div>
                             </div>
                         </div>
-                    </div>`).join('')}
+                    </div>`;
+                }).join('')}
             </div>`;
     }).join('');
 }
@@ -959,45 +1081,6 @@ function renderReview() {
         }
     });
     document.getElementById('review-body').innerHTML = h || '<div style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum item selecionado no pedido.</div>';
-}
-
-window.generateOrder = async () => {
-  const obs = document.getElementById('order-obs').value;
-  let msg = `*PEDIDO SALGADOS DO PONTO*\n👤 *Colaborador:* ${user}\n🏷️ *Setor:* ${userRole}\n📅 *Data:* ${date.split('-').reverse().join('/')}\n`;
-  categories.forEach(c => {
-      const items = products.filter(p => p.cat === c.name && quantities[p.id]);
-      if(items.length > 0) {
-          msg += `\n🔹 *${c.name.toUpperCase()}*\n`;
-          items.forEach(p => msg += `• ${p.name}: ${quantities[p.id]} ${p.unit}\n`);
-      }
-  });
-  if(obs) msg += `\n📝 *OBSERVAÇÃO:* ${obs}`;
-  document.getElementById('result-message').textContent = msg;
-  await addDoc(collection(db, "history"), { user, userRole, date, msg, timestamp: Date.now() });
-  window.navigate('result');
-};
-
-window.copyMessage = () => {
-    navigator.clipboard.writeText(document.getElementById('result-message').textContent);
-    showToast("Copiado!");
-};
-
-window.newOrder = () => { quantities = {}; document.getElementById('order-obs').value = ''; window.navigate('order'); };
-
-async function renderHistory() {
-    const snap = await onSnapshot(query(collection(db, "history"), orderBy("timestamp", "desc")), (snapshot) => {
-      const docs = snapshot.docs.map(d => d.data());
-      const cont = document.getElementById('history-body');
-      if (docs.length === 0) {
-        cont.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum histórico encontrado.</p>';
-        return;
-      }
-      cont.innerHTML = docs.map(h => `
-        <div style="background:var(--white); padding:14px; border-radius:var(--radius-md); margin-bottom:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
-          <div style="white-space:pre-wrap; font-family:monospace; font-size:12px; color:var(--gray-800);">${h.msg}</div>
-        </div>
-      `).join('');
-    });
 }
 </script>
 </body>
