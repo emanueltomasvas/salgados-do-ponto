@@ -11,6 +11,8 @@
     --red-hover: #a61314;
     --yellow: #F9D800;
     --yellow-light: #FFFDE6;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
     --white: #ffffff;
     --bg-app: #F4F5F7;
     --gray-50: #f8fafc;
@@ -233,7 +235,7 @@
 
   .login-hero {
     background: linear-gradient(135deg, var(--red) 0%, #900C0D 100%);
-    padding: 50px 24px 32px 24px;
+    padding: 36px 24px 24px 24px;
     text-align: center;
     border-radius: 0 0 32px 32px;
     box-shadow: var(--shadow-md);
@@ -243,7 +245,7 @@
     color: var(--yellow);
     font-family: 'Nunito', sans-serif;
     font-weight: 900;
-    font-size: 28px;
+    font-size: 26px;
     letter-spacing: -0.5px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.15);
   }
@@ -251,8 +253,48 @@
   .login-hero p {
     color: rgba(255,255,255,0.85);
     font-size: 13px;
-    margin-top: 6px;
+    margin-top: 4px;
     font-weight: 600;
+  }
+
+  .status-list {
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    margin-top: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--gray-200);
+    font-size: 13px;
+  }
+
+  .status-item:last-child {
+    border-bottom: none;
+  }
+
+  .status-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .status-badge.done {
+    background: var(--green-light);
+    color: var(--green);
+  }
+
+  .status-badge.pending {
+    background: #fef2f2;
+    color: var(--red);
   }
 
   .cat-group, .order-cat-group { 
@@ -512,6 +554,15 @@
     transform: translateX(-50%) translateY(0);
   }
 
+  .history-card {
+    background: var(--white);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+  }
+
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
@@ -532,22 +583,27 @@
       <h1>Salgados do Ponto.</h1>
       <p>Gestão Prática de Pedidos</p>
     </div>
-    <div class="body" style="padding-top:24px;">
+    <div class="body" style="padding-top:16px;">
+      <div class="field">
+        <label>Data da Solicitação</label>
+        <input type="date" id="login-date" onchange="window.updateStatusList()">
+      </div>
+      <div class="field">
+        <label>Status das Áreas nesta Data</label>
+        <div id="status-list-container" class="status-list"></div>
+      </div>
       <div class="field">
         <label>Nome do Colaborador</label>
         <input type="text" id="login-name" placeholder="Digite seu nome completo">
       </div>
       <div class="field">
-        <label>Sua Área / Setor</label>
+        <label>Seu Setor / Área</label>
         <select id="login-role">
           <!-- Preenchido dinamicamente via JS -->
         </select>
       </div>
-      <div class="field">
-        <label>Data</label>
-        <input type="date" id="login-date">
-      </div>
-      <button class="btn btn-primary" style="margin-top:10px;" onclick="window.doLogin()">Entrar no Sistema</button>
+      <button class="btn btn-primary" style="margin-top:6px;" onclick="window.doLogin()">Iniciar Pedido do Setor</button>
+      <button class="btn btn-secondary" style="margin-top:8px;" onclick="window.navigate('history')">Ver Histórico e Compras Totais</button>
     </div>
   </div>
 
@@ -619,28 +675,38 @@
 
   <!-- TELA REVISÃO -->
   <div class="screen" id="screen-review">
-    <div class="header"><b>Resumo Final</b></div>
+    <div class="header"><b>Resumo Final do Setor</b></div>
     <div class="body" id="review-body"></div>
     <div style="padding:14px 16px; background:var(--white); border-top:1px solid var(--gray-200); display:flex; gap:10px;">
       <button class="btn btn-secondary" onclick="window.navigate('order')">Voltar</button>
-      <button class="btn btn-primary" onclick="window.generateOrder()">Enviar WhatsApp</button>
+      <button class="btn btn-primary" onclick="window.finalizeAndSaveOrder()">Confirmar e Enviar</button>
     </div>
   </div>
 
   <!-- TELA RESULTADO -->
   <div class="screen" id="screen-result">
-    <div class="header"><b>Pronto!</b></div>
+    <div class="header"><b>Pedido Salvo com Sucesso!</b></div>
     <div class="body">
       <div id="result-message" style="background:var(--white); padding:16px; border-radius:var(--radius-md); border:1px solid var(--gray-200); white-space:pre-wrap; font-family:monospace; font-size:13px; margin-bottom:16px; box-shadow:var(--shadow-sm);"></div>
-      <button class="btn btn-primary" onclick="window.copyMessage()">Copiar Mensagem</button>
-      <button class="btn btn-secondary" style="margin-top:10px;" onclick="window.newOrder()">Novo Pedido</button>
+      <button class="btn btn-primary" onclick="window.copyMessage()">Copiar para WhatsApp</button>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="window.backToHome()">Voltar ao Início</button>
     </div>
   </div>
 
   <!-- TELA HISTÓRICO -->
   <div class="screen" id="screen-history">
-    <div class="header"><b>Histórico de Pedidos</b></div>
-    <div class="body" id="history-body"></div>
+    <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
+      <b>Histórico & Consolidação</b>
+      <button onclick="window.navigate('login')" style="background:rgba(255,255,255,0.2); color:var(--white); border:none; padding:6px 10px; border-radius:var(--radius-sm); font-weight:800; font-size:11px; cursor:pointer;">Início</button>
+    </div>
+    <div class="body">
+      <div class="field">
+        <label>Selecione a Data para Visualizar</label>
+        <input type="date" id="history-date-filter" onchange="window.renderHistory()">
+      </div>
+      <div id="history-summary-box" style="margin-bottom:16px;"></div>
+      <div id="history-body"></div>
+    </div>
     <div class="nav">
       <div class="nav-item" onclick="window.navigate('order')">PEDIDO</div>
       <div class="nav-item active" onclick="window.navigate('history')">HISTÓRICO</div>
@@ -674,7 +740,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA-B0kT2YjodcNeIV6-T3QV17wQkDTYqu0",
@@ -688,6 +754,13 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let products = [], categories = [], roles = [], quantities = {}, user = '', userRole = 'TODAS', date = '', editingId = null;
+let savedOrders = [];
+let generatedSummaryText = '';
+
+// Data de hoje default em AAAA-MM-DD
+const todayStr = new Date().toISOString().split('T')[0];
+document.getElementById('login-date').value = todayStr;
+document.getElementById('history-date-filter').value = todayStr;
 
 // Utility toast
 function showToast(msg) {
@@ -701,6 +774,7 @@ function showToast(msg) {
 onSnapshot(query(collection(db, "roles")), snap => {
   roles = snap.docs.map(d => ({ fbId: d.id, ...d.data() }));
   renderRolesDropdowns();
+  window.updateStatusList();
   if(document.getElementById('screen-catalog').classList.contains('active')) renderCatalog();
 });
 
@@ -717,18 +791,55 @@ onSnapshot(collection(db, "products"), snap => {
   if(document.getElementById('screen-order').classList.contains('active')) renderOrder();
 });
 
+onSnapshot(collection(db, "orders"), snap => {
+  savedOrders = snap.docs.map(d => ({ fbId: d.id, ...d.data() }));
+  window.updateStatusList();
+  if(document.getElementById('screen-history').classList.contains('active')) window.renderHistory();
+});
+
 function renderCatDropdowns() {
   const opts = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
   document.getElementById('new-cat').innerHTML = opts;
   document.getElementById('edit-cat').innerHTML = opts;
 }
 
-// --- FUNÇÕES CORE ---
+// --- CHECAGEM DE SETORES NA HOME ---
+window.updateStatusList = () => {
+  const selectedDate = document.getElementById('login-date').value;
+  const container = document.getElementById('status-list-container');
+  if (!selectedDate) {
+    container.innerHTML = '<span style="font-size:12px; color:var(--gray-400);">Selecione uma data para ver os status.</span>';
+    return;
+  }
+
+  const ordersForDate = savedOrders.filter(o => o.date === selectedDate);
+  const completedRoles = new Set(ordersForDate.map(o => o.userRole));
+
+  if (roles.length === 0) {
+    container.innerHTML = '<span style="font-size:12px; color:var(--gray-400);">Nenhum setor cadastrado.</span>';
+    return;
+  }
+
+  container.innerHTML = roles.map(r => {
+    const isDone = completedRoles.has(r.name);
+    return `
+      <div class="status-item">
+        <span style="font-weight:700; color:var(--gray-800);">${r.name}</span>
+        <span class="status-badge ${isDone ? 'done' : 'pending'}">
+          ${isDone ? '✓ Concluído' : 'Pedente'}
+        </span>
+      </div>
+    `;
+  }).join('');
+};
+
+// --- CORE NAVIGATION ---
 window.doLogin = () => {
   user = document.getElementById('login-name').value;
   userRole = document.getElementById('login-role').value;
   date = document.getElementById('login-date').value;
-  if(!user || !date || !userRole) return alert("Preencha nome, área e data");
+  if(!user || !date || !userRole) return alert("Preencha nome, setor e data!");
+  quantities = {};
   window.navigate('order');
 };
 
@@ -737,7 +848,14 @@ window.navigate = (s) => {
   document.getElementById('screen-'+s).classList.add('active');
   if(s==='order') renderOrder();
   if(s==='catalog') renderCatalog();
-  if(s==='history') renderHistory();
+  if(s==='history') window.renderHistory();
+  if(s==='review') renderReview();
+  if(s==='login') window.updateStatusList();
+};
+
+window.backToHome = () => {
+  quantities = {};
+  window.navigate('login');
 };
 
 // --- ÁREAS / SETORES ---
@@ -768,7 +886,7 @@ function renderRolesDropdowns() {
   const defaultOption = `<option value="TODAS">Todas as Áreas (Geral)</option>`;
   const rolesOptions = roles.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
   
-  document.getElementById('login-role').innerHTML = defaultOption + rolesOptions;
+  document.getElementById('login-role').innerHTML = rolesOptions || defaultOption;
 
   const renderCheckboxes = (containerId, selectedRoles = ['TODAS']) => {
     const isTodasChecked = selectedRoles.includes('TODAS');
@@ -962,8 +1080,174 @@ window.chg = (id, v) => {
   renderOrder();
 };
 
-// --- RENDERS ---
+// --- SALVAR PEDIDO NO BANCO E GERAR RESUMO ---
+window.finalizeAndSaveOrder = async () => {
+    const obs = document.getElementById('order-obs').value;
+    const items = [];
 
+    Object.keys(quantities).forEach(prodId => {
+      const p = products.find(x => x.id === prodId);
+      if(p && quantities[prodId] > 0) {
+        items.push({
+          id: p.id,
+          name: p.name,
+          cat: p.cat,
+          unit: p.unit,
+          qty: quantities[prodId]
+        });
+      }
+    });
+
+    if(items.length === 0) return alert("Selecione ao menos um produto antes de finalizar.");
+
+    const formattedDate = date ? date.split('-').reverse().join('/') : '';
+    
+    // Salva ou atualiza no Firestore para o mesmo setor e data
+    const existingOrder = savedOrders.find(o => o.date === date && o.userRole === userRole);
+    const orderData = {
+      user,
+      userRole,
+      date,
+      obs,
+      items,
+      createdAt: Date.now()
+    };
+
+    if (existingOrder) {
+      await setDoc(doc(db, "orders", existingOrder.fbId), orderData);
+    } else {
+      await addDoc(collection(db, "orders"), orderData);
+    }
+
+    // Gera texto para WhatsApp
+    let txt = `*SOLICITAÇÃO DE COMPRAS*\n`;
+    txt += `📍 Setor: *${userRole}*\n`;
+    txt += `👤 Responsável: ${user}\n`;
+    txt += `📅 Data: ${formattedDate}\n`;
+    if(obs) txt += `💬 Obs: ${obs}\n`;
+    txt += `------------------------------\n`;
+
+    categories.forEach(c => {
+      const cItems = items.filter(i => i.cat === c.name);
+      if(cItems.length > 0) {
+        txt += `\n*${c.name.toUpperCase()}*\n`;
+        cItems.forEach(i => {
+          txt += `• ${i.name}: *${i.qty} ${i.unit}*\n`;
+        });
+      }
+    });
+
+    generatedSummaryText = txt;
+    document.getElementById('result-message').textContent = txt;
+    window.navigate('result');
+};
+
+window.copyMessage = () => {
+  navigator.clipboard.writeText(generatedSummaryText);
+  showToast("Texto copiado para o WhatsApp!");
+};
+
+// --- HISTÓRICO E COMPRAS TOTAIS CONSOLIDADAS ---
+window.renderHistory = () => {
+  const filterDate = document.getElementById('history-date-filter').value;
+  const historyBody = document.getElementById('history-body');
+  const summaryBox = document.getElementById('history-summary-box');
+
+  if (!filterDate) {
+    historyBody.innerHTML = '<p style="text-align:center; padding:20px; color:var(--gray-400);">Selecione uma data para filtrar.</p>';
+    summaryBox.innerHTML = '';
+    return;
+  }
+
+  const filteredOrders = savedOrders.filter(o => o.date === filterDate);
+
+  if (filteredOrders.length === 0) {
+    summaryBox.innerHTML = '';
+    historyBody.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum pedido realizado para esta data.</p>';
+    return;
+  }
+
+  // SOMA CONSOLIDADA DE PRODUTOS PARA A LISTA DE COMPRAS TOTAL
+  const totalMap = {};
+
+  filteredOrders.forEach(ord => {
+    ord.items.forEach(item => {
+      if (!totalMap[item.name]) {
+        totalMap[item.name] = {
+          name: item.name,
+          cat: item.cat,
+          unit: item.unit,
+          qty: 0,
+          roles: new Set()
+        };
+      }
+      totalMap[item.name].qty += item.qty;
+      totalMap[item.name].roles.add(ord.userRole);
+    });
+  });
+
+  const formattedFilterDate = filterDate.split('-').reverse().join('/');
+
+  // MONTA O CARD DA LISTA DE COMPRAS TOTAL
+  let sumHtml = `
+    <div style="background:var(--yellow-light); border:2px solid var(--yellow); border-radius:var(--radius-lg); padding:16px; box-shadow:var(--shadow-md);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="font-family:'Nunito', sans-serif; font-size:16px; font-weight:900; color:var(--gray-900);">🛒 LISTA DE COMPRAS TOTAL CONSOLIDADA</h3>
+        <span style="font-size:11px; font-weight:800; background:var(--yellow); padding:3px 8px; border-radius:12px;">${formattedFilterDate}</span>
+      </div>
+      <p style="font-size:12px; color:var(--gray-600); margin-bottom:12px;">Soma automática de todos os setores que enviaram solicitação para este dia.</p>
+  `;
+
+  categories.forEach(c => {
+    const catItems = Object.values(totalMap).filter(i => i.cat === c.name);
+    if (catItems.length > 0) {
+      sumHtml += `<div style="font-weight:900; font-size:11px; color:var(--red); text-transform:uppercase; margin-top:10px; margin-bottom:4px;">${c.name}</div>`;
+      catItems.forEach(i => {
+        const rolesList = Array.from(i.roles).join(', ');
+        sumHtml += `
+          <div style="display:flex; justify-content:space-between; align-items:center; background:var(--white); padding:8px 12px; border-radius:var(--radius-sm); margin-bottom:4px; font-size:13px; box-shadow:var(--shadow-sm);">
+            <div>
+              <b>${i.name}</b>
+              <div style="font-size:10px; color:var(--gray-400);">Setores: ${rolesList}</div>
+            </div>
+            <span style="font-weight:900; color:var(--red); font-size:14px;">${i.qty} ${i.unit}</span>
+          </div>
+        `;
+      });
+    }
+  });
+
+  sumHtml += `</div>`;
+  summaryBox.innerHTML = sumHtml;
+
+  // MONTA OS CARDS INDIVIDUAIS DE CADA SETOR
+  let historyCardsHtml = '<h4 style="font-family:\'Nunito\', sans-serif; font-weight:800; color:var(--gray-600); margin:16px 0 8px 0; font-size:13px;">PEDIDOS INDIVIDUAIS POR SETOR</h4>';
+
+  filteredOrders.forEach(ord => {
+    historyCardsHtml += `
+      <div class="history-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-100); padding-bottom:8px; margin-bottom:8px;">
+          <div>
+            <b style="font-size:14px; color:var(--red);">${ord.userRole}</b>
+            <div style="font-size:11px; color:var(--gray-600);">Resp: ${ord.user}</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:var(--gray-400);">${new Date(ord.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+        </div>
+        ${ord.obs ? `<div style="font-size:12px; font-style:italic; color:var(--gray-600); margin-bottom:8px; background:var(--gray-50); padding:6px; border-radius:6px;">💬 "${ord.obs}"</div>` : ''}
+        ${ord.items.map(i => `
+          <div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;">
+            <span>• ${i.name}</span>
+            <b>${i.qty} ${i.unit}</b>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  });
+
+  historyBody.innerHTML = historyCardsHtml;
+};
+
+// --- RENDERS ---
 function renderOrder() {
   const formattedDate = date ? date.split('-').reverse().join('/') : '';
   document.getElementById('order-info').textContent = `${user || 'Usuário'} (${userRole}) • ${formattedDate}`;
@@ -974,7 +1258,6 @@ function renderOrder() {
       return;
   }
 
-  // Filtragem estrita por área selecionada no login
   const currentRole = (userRole || 'TODAS').trim().toUpperCase();
 
   const filteredProducts = products.filter(p => {
@@ -987,9 +1270,7 @@ function renderOrder() {
         prodRoles = ['TODAS'];
       }
 
-      // Se o usuário selecionou 'TODAS', enxerga todos os produtos
       if (currentRole === 'TODAS') return true;
-      // Caso contrário, exibe se o produto pertencer à área selecionada ou a 'TODAS'
       return prodRoles.includes('TODAS') || prodRoles.includes(currentRole);
   });
 
