@@ -182,7 +182,7 @@
     letter-spacing: 0.5px;
   }
 
-  .field input[type="text"], .field input[type="date"], .field select, .field textarea { 
+  .field input[type="text"], .field input[type="number"], .field input[type="date"], .field select, .field textarea { 
     width: 100%; 
     border: 1.5px solid var(--gray-200); 
     border-radius: var(--radius-md); 
@@ -622,6 +622,14 @@
     font-weight: 800;
     text-align: center;
     background: var(--white);
+  }
+
+  .add-extra-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-top: 14px;
   }
 
   @keyframes fadeIn {
@@ -1330,6 +1338,38 @@ window.updatePurchaseQty = async (dateKey, prodName, qtyVal) => {
   }, { merge: true });
 };
 
+// Adiciona um item extra (fora do pedido)
+window.addExtraPurchaseItem = async (dateKey) => {
+  const name = document.getElementById('extra-prod-name').value.trim();
+  const qty = document.getElementById('extra-prod-qty').value;
+  const unit = document.getElementById('extra-prod-unit').value;
+
+  if(!name) return showToast("Digite o nome do produto extra!");
+  if(!qty) return showToast("Digite a quantidade comprada!");
+
+  const docId = `${dateKey}_${encodeURIComponent(name)}`;
+  
+  await setDoc(doc(db, "purchases", docId), {
+    date: dateKey,
+    prodName: name,
+    boughtQty: Number(qty),
+    unit: unit,
+    status: 'bought',
+    isExtra: true
+  }, { merge: true });
+
+  showToast("Produto extra adicionado!");
+  window.renderHistory();
+};
+
+window.removeExtraItem = async (dateKey, prodName) => {
+  if(confirm(`Remover "${prodName}" do consolidado?`)) {
+    const docId = `${dateKey}_${encodeURIComponent(prodName)}`;
+    await deleteDoc(doc(db, "purchases", docId));
+    showToast("Item removido!");
+  }
+};
+
 window.copyPurchasesSummaryToWhatsApp = (selectedDate, totals) => {
   let msg = `🛒 *RELATÓRIO DE COMPRAS REALIZADAS*\n📅 *Data:* ${selectedDate}\n-----------------------------------\n\n`;
 
@@ -1337,6 +1377,7 @@ window.copyPurchasesSummaryToWhatsApp = (selectedDate, totals) => {
   let missingItems = [];
   let pendingItems = [];
 
+  // Itens Solicitados
   Object.keys(totals).forEach(prodName => {
     const t = totals[prodName];
     const docId = `${selectedDate}_${encodeURIComponent(prodName)}`;
@@ -1350,6 +1391,14 @@ window.copyPurchasesSummaryToWhatsApp = (selectedDate, totals) => {
       missingItems.push(`❌ *${prodName}*: FALTOU (Solicitado: ${t.qty} ${t.unit})`);
     } else {
       pendingItems.push(`⚪ *${prodName}*: ${t.qty} ${t.unit}`);
+    }
+  });
+
+  // Itens Extras (NÃO Solicitados)
+  Object.keys(purchasesData).forEach(docId => {
+    const pData = purchasesData[docId];
+    if (pData.date === selectedDate && pData.isExtra) {
+      boughtItems.push(`➕ *${pData.prodName}*: Comprado ${pData.boughtQty} ${pData.unit} _[Fora do Pedido]_`);
     }
   });
 
@@ -1404,6 +1453,7 @@ window.renderHistory = () => {
 
   sumHtml += `<div style="margin-top:8px;">`;
 
+  // Renderiza produtos solicitados pelos setores
   Object.keys(totals).forEach(prodName => {
     const t = totals[prodName];
     const docId = `${selectedDate}_${encodeURIComponent(prodName)}`;
@@ -1434,7 +1484,56 @@ window.renderHistory = () => {
     `;
   });
 
-  sumHtml += `</div></div>`;
+  // Renderiza produtos EXTRAS (comprados sem solicitação)
+  Object.keys(purchasesData).forEach(docId => {
+    const pData = purchasesData[docId];
+    if (pData.date === selectedDate && pData.isExtra) {
+      sumHtml += `
+        <div class="purchase-item-row" style="background:#f0fdf4; padding:8px; border-radius:6px; margin-top:4px;">
+          <div class="purchase-item-main">
+            <span style="font-size:13px; font-weight:800; color:var(--green);">➕ ${pData.prodName} <small style="font-weight:600; font-style:italic;">(Fora do Pedido)</small></span>
+            <button onclick="window.removeExtraItem('${selectedDate}', '${pData.prodName.replace(/'/g, "\\'")}')" style="background:none; border:none; color:var(--red); font-weight:800; cursor:pointer;">🗑️</button>
+          </div>
+          <div class="purchase-actions">
+            <label style="font-size:11px; font-weight:800; color:var(--gray-600);">Comprado:</label>
+            <input type="number" class="input-bought-qty" value="${pData.boughtQty || ''}" onchange="window.updatePurchaseQty('${selectedDate}', '${pData.prodName.replace(/'/g, "\\'")}', this.value)">
+            <span style="font-size:11px; font-weight:800; color:var(--gray-600);">${pData.unit}</span>
+            <span class="btn-check-status bought">✅ Comprado</span>
+          </div>
+        </div>
+      `;
+    }
+  });
+
+  sumHtml += `</div>`;
+
+  // Formulário para Inserção de Produtos Extras
+  sumHtml += `
+    <div class="add-extra-box">
+      <label style="font-size:11px; font-weight:800; color:var(--green); text-transform:uppercase; display:block; margin-bottom:8px;">
+        ➕ Adicionar Produto Extra (Fora do Pedido)
+      </label>
+      <div class="field" style="margin-bottom:8px;">
+        <input type="text" id="extra-prod-name" placeholder="Nome do produto extra comprada">
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <input type="number" id="extra-prod-qty" placeholder="Qtd" style="flex:1; padding:8px; border:1px solid var(--gray-300); border-radius:6px; font-size:13px;">
+        <select id="extra-prod-unit" style="flex:1; padding:8px; border:1px solid var(--gray-300); border-radius:6px; font-size:13px;">
+          <option>un</option>
+          <option>cx</option>
+          <option>fardo</option>
+          <option>kg</option>
+          <option>g</option>
+          <option>l</option>
+        </select>
+      </div>
+      <button class="btn" style="background:var(--green); color:var(--white); padding:8px; font-size:12px;" onclick="window.addExtraPurchaseItem('${selectedDate}')">
+        + Incluir no Consolidado
+      </button>
+    </div>
+  `;
+
+  sumHtml += `</div>`;
   summaryBox.innerHTML = sumHtml;
 
   // Listagem detalhada dos pedidos por setor
