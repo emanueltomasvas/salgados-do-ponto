@@ -563,6 +563,67 @@
     border: 1px solid var(--gray-200);
   }
 
+  /* Estilos do Consolidado de Compras */
+  .purchase-item-row {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+    border-bottom: 1px dashed #fef08a;
+  }
+
+  .purchase-item-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .purchase-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .btn-check-status {
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-check-status.bought {
+    background: var(--green-light);
+    color: var(--green);
+    border: 1px solid var(--green);
+  }
+
+  .btn-check-status.missing {
+    background: #fef2f2;
+    color: var(--red);
+    border: 1px solid var(--red);
+  }
+
+  .btn-check-status.neutral {
+    background: var(--white);
+    color: var(--gray-400);
+    border: 1px solid var(--gray-300);
+  }
+
+  .input-bought-qty {
+    width: 65px;
+    padding: 4px 6px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+    background: var(--white);
+  }
+
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
@@ -740,7 +801,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA-B0kT2YjodcNeIV6-T3QV17wQkDTYqu0",
@@ -755,6 +816,7 @@ const db = getFirestore(app);
 
 let products = [], categories = [], roles = [], quantities = {}, user = '', userRole = 'TODAS', date = '', editingId = null;
 let savedOrders = [];
+let purchasesData = {}; // Armazena estado das compras do consolidado (Firebase)
 let generatedSummaryText = '';
 
 // Data de hoje default em AAAA-MM-DD
@@ -797,6 +859,14 @@ onSnapshot(collection(db, "orders"), snap => {
   if(document.getElementById('screen-history').classList.contains('active')) window.renderHistory();
 });
 
+onSnapshot(collection(db, "purchases"), snap => {
+  purchasesData = {};
+  snap.docs.forEach(d => {
+    purchasesData[d.id] = d.data();
+  });
+  if(document.getElementById('screen-history').classList.contains('active')) window.renderHistory();
+});
+
 function renderCatDropdowns() {
   const opts = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
   document.getElementById('new-cat').innerHTML = opts;
@@ -826,7 +896,7 @@ window.updateStatusList = () => {
       <div class="status-item">
         <span style="font-weight:700; color:var(--gray-800);">${r.name}</span>
         <span class="status-badge ${isDone ? 'done' : 'pending'}">
-          ${isDone ? '✓ Concluído' : 'Pedente'}
+          ${isDone ? '✓ Concluído' : 'Pendente'}
         </span>
       </div>
     `;
@@ -1028,35 +1098,32 @@ window.openEdit = (id) => {
     document.getElementById('edit-cat').value = p.cat;
     document.getElementById('edit-unit').value = p.unit;
     
-    const pRoles = Array.isArray(p.roles) ? p.roles : (p.role ? p.role.split(',').map(s=>s.trim()) : ['TODAS']);
+    const pRoles = Array.isArray(p.roles) ? p.roles : (p.role ? [p.role] : ['TODAS']);
+    const isTodasChecked = pRoles.includes('TODAS');
     
-    const renderCheckboxes = (containerId, selectedRoles) => {
-      const isTodasChecked = selectedRoles.includes('TODAS');
-      let html = `
+    let html = `
+      <label class="checkbox-item">
+        <input type="checkbox" value="TODAS" ${isTodasChecked ? 'checked' : ''} onchange="window.handleRoleCheckboxChange(this, 'edit-roles-checkboxes')">
+        Todas as Áreas (Geral)
+      </label>
+    `;
+    html += roles.map(r => {
+      const isChecked = isTodasChecked || pRoles.includes(r.name);
+      return `
         <label class="checkbox-item">
-          <input type="checkbox" value="TODAS" ${isTodasChecked ? 'checked' : ''} onchange="window.handleRoleCheckboxChange(this, '${containerId}')">
-          Todas as Áreas (Geral)
+          <input type="checkbox" value="${r.name}" ${isChecked ? 'checked' : ''} onchange="window.handleRoleCheckboxChange(this, 'edit-roles-checkboxes')">
+          ${r.name}
         </label>
       `;
-      html += roles.map(r => {
-        const isChecked = isTodasChecked || selectedRoles.includes(r.name);
-        return `
-          <label class="checkbox-item">
-            <input type="checkbox" value="${r.name}" ${isChecked ? 'checked' : ''} onchange="window.handleRoleCheckboxChange(this, '${containerId}')">
-            ${r.name}
-          </label>
-        `;
-      }).join('');
-      document.getElementById(containerId).innerHTML = html;
-    };
+    }).join('');
     
-    renderCheckboxes('edit-roles-checkboxes', pRoles);
+    document.getElementById('edit-roles-checkboxes').innerHTML = html;
     document.getElementById('edit-overlay').classList.add('open');
 };
 
 window.closeEdit = () => {
-  editingId = null;
-  document.getElementById('edit-overlay').classList.remove('open');
+    document.getElementById('edit-overlay').classList.remove('open');
+    editingId = null;
 };
 
 window.saveEdit = async () => {
@@ -1066,303 +1133,332 @@ window.saveEdit = async () => {
     const selectedRoles = getSelectedRoles('edit-roles-checkboxes');
     await updateDoc(doc(db, "products", editingId), { name, cat, unit, roles: selectedRoles, role: selectedRoles.join(', ') });
     window.closeEdit();
-    showToast("Atualizado!");
+    showToast("Produto atualizado!");
 };
 
-window.delProduct = async (id) => {
-    const p = products.find(x => x.id === id);
-    if(confirm("Excluir produto?")) await deleteDoc(doc(db, "products", p.fbId || id));
+window.deleteProduct = async (id) => {
+    if(confirm("Deseja realmente excluir este produto?")) {
+        await deleteDoc(doc(db, "products", id));
+        showToast("Produto excluído!");
+    }
 };
 
-window.chg = (id, v) => {
-  const n = (quantities[id] || 0) + v;
-  if(n <= 0) delete quantities[id]; else quantities[id] = n;
+// --- RENDER PEDIDO ---
+function renderOrder() {
+  document.getElementById('order-info').innerHTML = `👤 ${user} &nbsp;|&nbsp; 📍 ${userRole} &nbsp;|&nbsp; 📅 ${date}`;
+  const scroller = document.getElementById('order-products-scroller');
+  scroller.innerHTML = '';
+
+  const filteredProds = products.filter(p => {
+    const pRoles = Array.isArray(p.roles) ? p.roles : (p.role ? [p.role] : ['TODAS']);
+    return userRole === 'TODAS' || pRoles.includes('TODAS') || pRoles.includes(userRole);
+  });
+
+  if (filteredProds.length === 0) {
+    scroller.innerHTML = '<div style="text-align:center; padding:30px; color:var(--gray-400);">Nenhum produto cadastrado para esta área.</div>';
+    return;
+  }
+
+  categories.forEach(c => {
+    const catProds = filteredProds.filter(p => p.cat === c.name).sort((a,b) => (a.order || 0) - (b.order || 0));
+    if(catProds.length > 0) {
+      let groupHtml = `<div class="order-cat-group"><div class="order-cat-label">${c.name}</div>`;
+      catProds.forEach(p => {
+        const q = quantities[p.id] || 0;
+        groupHtml += `
+          <div class="product-item">
+            <div>
+              <b>${p.name}</b><br>
+              <span class="unit-badge">${p.unit}</span>
+            </div>
+            <div class="qty-controls">
+              <button class="btn-qty btn-qty-minus" onclick="window.updateQty('${p.id}', -1)">-</button>
+              <span class="qty-val">${q}</span>
+              <button class="btn-qty btn-qty-plus" onclick="window.updateQty('${p.id}', 1)">+</button>
+            </div>
+          </div>
+        `;
+      });
+      groupHtml += `</div>`;
+      scroller.innerHTML += groupHtml;
+    }
+  });
+}
+
+window.updateQty = (id, delta) => {
+  const current = quantities[id] || 0;
+  const next = current + delta;
+  if(next <= 0) delete quantities[id];
+  else quantities[id] = next;
   renderOrder();
 };
 
-// --- SALVAR PEDIDO NO BANCO E GERAR RESUMO ---
-window.finalizeAndSaveOrder = async () => {
-    const obs = document.getElementById('order-obs').value;
-    const items = [];
+// --- CATALOGO ---
+function renderCatalog() {
+  const cont = document.getElementById('catalog-grouped');
+  cont.innerHTML = '';
 
-    Object.keys(quantities).forEach(prodId => {
-      const p = products.find(x => x.id === prodId);
-      if(p && quantities[prodId] > 0) {
-        items.push({
-          id: p.id,
-          name: p.name,
-          cat: p.cat,
-          unit: p.unit,
-          qty: quantities[prodId]
-        });
-      }
+  categories.forEach((c, idx) => {
+    const catProds = products.filter(p => p.cat === c.name).sort((a,b) => (a.order || 0) - (b.order || 0));
+    let catHtml = `
+      <div class="cat-group">
+        <div class="cat-header">
+          <span class="cat-title">${c.name} (${catProds.length})</span>
+          <div class="order-controls">
+            <button class="btn-order" onclick="window.moveCat(${idx}, -1)">▲</button>
+            <button class="btn-order" onclick="window.moveCat(${idx}, 1)">▼</button>
+            <button class="btn-order" style="color:var(--red);" onclick="window.delCategory('${c.fbId}', '${c.name}')">✕</button>
+          </div>
+        </div>
+    `;
+
+    catProds.forEach((p, pIdx) => {
+      const pRoles = Array.isArray(p.roles) ? p.roles.join(', ') : (p.role || 'TODAS');
+      catHtml += `
+        <div class="product-item">
+          <div>
+            <b>${p.name}</b><br>
+            <span class="unit-badge">${p.unit}</span>
+            <span class="role-badge">${pRoles}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <button class="btn-order" onclick="window.moveProd('${p.id}', '${c.name}', -1)">▲</button>
+            <button class="btn-order" onclick="window.moveProd('${p.id}', '${c.name}', 1)">▼</button>
+            <div class="menu-dots" onclick="window.toggleMenu(event, '${p.id}')">⋮</div>
+            <div class="dropdown" id="drop-${p.id}">
+              <div class="dropdown-item" onclick="window.openEdit('${p.id}')">✏️ Editar</div>
+              <div class="dropdown-item" onclick="window.duplicateProduct('${p.id}')">📋 Duplicar</div>
+              <div class="dropdown-item" style="color:var(--red);" onclick="window.deleteProduct('${p.fbId || p.id}')">🗑️ Excluir</div>
+            </div>
+          </div>
+        </div>
+      `;
     });
 
-    if(items.length === 0) return alert("Selecione ao menos um produto antes de finalizar.");
+    catHtml += `</div>`;
+    cont.innerHTML += catHtml;
+  });
+}
 
-    const formattedDate = date ? date.split('-').reverse().join('/') : '';
-    
-    // Salva ou atualiza no Firestore para o mesmo setor e data
-    const existingOrder = savedOrders.find(o => o.date === date && o.userRole === userRole);
-    const orderData = {
-      user,
-      userRole,
-      date,
-      obs,
-      items,
-      createdAt: Date.now()
-    };
+// --- REVISÃO ---
+function renderReview() {
+  const body = document.getElementById('review-body');
+  const keys = Object.keys(quantities);
+  if(keys.length === 0) {
+    body.innerHTML = '<div style="text-align:center; padding:40px; color:var(--gray-400);">Nenhum item selecionado no pedido.</div>';
+    return;
+  }
 
-    if (existingOrder) {
-      await setDoc(doc(db, "orders", existingOrder.fbId), orderData);
-    } else {
-      await addDoc(collection(db, "orders"), orderData);
+  let html = `<div style="background:var(--white); padding:16px; border-radius:var(--radius-md); border:1px solid var(--gray-200); margin-bottom:12px;">`;
+  html += `<b>Solicitante:</b> ${user}<br><b>Setor:</b> ${userRole}<br><b>Data:</b> ${date}<br></div>`;
+  
+  html += `<div style="background:var(--white); padding:16px; border-radius:var(--radius-md); border:1px solid var(--gray-200);">`;
+  keys.forEach(k => {
+    const p = products.find(x => x.id === k);
+    if(p) {
+      html += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--gray-100);">
+        <span>${p.name}</span>
+        <b>${quantities[k]} ${p.unit}</b>
+      </div>`;
     }
+  });
+  
+  const obs = document.getElementById('order-obs').value;
+  if(obs) {
+    html += `<div style="margin-top:12px; padding-top:8px; border-top:1px dashed var(--gray-300); font-size:12px;"><b>Obs:</b> ${obs}</div>`;
+  }
+  
+  html += `</div>`;
+  body.innerHTML = html;
+}
 
-    // Gera texto para WhatsApp
-    let txt = `*SOLICITAÇÃO DE COMPRAS*\n`;
-    txt += `📍 Setor: *${userRole}*\n`;
-    txt += `👤 Responsável: ${user}\n`;
-    txt += `📅 Data: ${formattedDate}\n`;
-    if(obs) txt += `💬 Obs: ${obs}\n`;
-    txt += `------------------------------\n`;
+// --- SALVAR & CONSOLIDAR ---
+window.finalizeAndSaveOrder = async () => {
+  const keys = Object.keys(quantities);
+  if(keys.length === 0) return alert("Selecione pelo menos um produto!");
 
-    categories.forEach(c => {
-      const cItems = items.filter(i => i.cat === c.name);
-      if(cItems.length > 0) {
-        txt += `\n*${c.name.toUpperCase()}*\n`;
-        cItems.forEach(i => {
-          txt += `• ${i.name}: *${i.qty} ${i.unit}*\n`;
-        });
-      }
-    });
+  const items = keys.map(k => {
+    const p = products.find(x => x.id === k);
+    return { id: p.id, name: p.name, unit: p.unit, cat: p.cat, qty: quantities[k] };
+  });
 
-    generatedSummaryText = txt;
-    document.getElementById('result-message').textContent = txt;
-    window.navigate('result');
+  const obs = document.getElementById('order-obs').value;
+  const orderObj = { user, userRole, date, items, obs, timestamp: Date.now() };
+
+  await addDoc(collection(db, "orders"), orderObj);
+
+  let msg = `📋 *PEDIDO DE COMPRAS — SALGADOS DO PONTO*\n`;
+  msg += `👤 *Solicitante:* ${user}\n📍 *Setor:* ${userRole}\n📅 *Data:* ${date}\n`;
+  msg += `-----------------------------------\n`;
+  items.forEach(i => {
+    msg += `• ${i.name}: *${i.qty} ${i.unit}*\n`;
+  });
+  if(obs) msg += `-----------------------------------\n📝 *Obs:* ${obs}\n`;
+
+  generatedSummaryText = msg;
+  document.getElementById('result-message').textContent = msg;
+  window.navigate('result');
 };
 
 window.copyMessage = () => {
   navigator.clipboard.writeText(generatedSummaryText);
-  showToast("Texto copiado para o WhatsApp!");
+  showToast("Copiado para a área de transferência!");
 };
 
-// --- HISTÓRICO E COMPRAS TOTAIS CONSOLIDADAS ---
-window.renderHistory = () => {
-  const filterDate = document.getElementById('history-date-filter').value;
-  const historyBody = document.getElementById('history-body');
-  const summaryBox = document.getElementById('history-summary-box');
+// --- ATUALIZAÇÕES DE COMPRA NO CONSOLIDADO ---
+window.updatePurchaseStatus = async (dateKey, prodName, status) => {
+  const docId = `${dateKey}_${encodeURIComponent(prodName)}`;
+  const current = purchasesData[docId] || {};
+  const nextStatus = current.status === status ? 'neutral' : status;
+  
+  await setDoc(doc(db, "purchases", docId), {
+    date: dateKey,
+    prodName,
+    status: nextStatus,
+    boughtQty: current.boughtQty !== undefined ? current.boughtQty : null
+  }, { merge: true });
+};
 
-  if (!filterDate) {
-    historyBody.innerHTML = '<p style="text-align:center; padding:20px; color:var(--gray-400);">Selecione uma data para filtrar.</p>';
-    summaryBox.innerHTML = '';
-    return;
-  }
+window.updatePurchaseQty = async (dateKey, prodName, qtyVal) => {
+  const docId = `${dateKey}_${encodeURIComponent(prodName)}`;
+  const numVal = qtyVal === '' ? null : Number(qtyVal);
+  
+  await setDoc(doc(db, "purchases", docId), {
+    date: dateKey,
+    prodName,
+    boughtQty: numVal
+  }, { merge: true });
+};
 
-  const filteredOrders = savedOrders.filter(o => o.date === filterDate);
+window.copyPurchasesSummaryToWhatsApp = (selectedDate, totals) => {
+  let msg = `🛒 *RELATÓRIO DE COMPRAS REALIZADAS*\n📅 *Data:* ${selectedDate}\n-----------------------------------\n\n`;
 
-  if (filteredOrders.length === 0) {
-    summaryBox.innerHTML = '';
-    historyBody.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum pedido realizado para esta data.</p>';
-    return;
-  }
+  let boughtItems = [];
+  let missingItems = [];
+  let pendingItems = [];
 
-  // SOMA CONSOLIDADA DE PRODUTOS PARA A LISTA DE COMPRAS TOTAL
-  const totalMap = {};
+  Object.keys(totals).forEach(prodName => {
+    const t = totals[prodName];
+    const docId = `${selectedDate}_${encodeURIComponent(prodName)}`;
+    const pData = purchasesData[docId] || {};
+    const status = pData.status || 'neutral';
+    const boughtQty = pData.boughtQty !== undefined && pData.boughtQty !== null ? pData.boughtQty : t.qty;
 
-  filteredOrders.forEach(ord => {
-    ord.items.forEach(item => {
-      if (!totalMap[item.name]) {
-        totalMap[item.name] = {
-          name: item.name,
-          cat: item.cat,
-          unit: item.unit,
-          qty: 0,
-          roles: new Set()
-        };
-      }
-      totalMap[item.name].qty += item.qty;
-      totalMap[item.name].roles.add(ord.userRole);
-    });
-  });
-
-  const formattedFilterDate = filterDate.split('-').reverse().join('/');
-
-  // MONTA O CARD DA LISTA DE COMPRAS TOTAL
-  let sumHtml = `
-    <div style="background:var(--yellow-light); border:2px solid var(--yellow); border-radius:var(--radius-lg); padding:16px; box-shadow:var(--shadow-md);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3 style="font-family:'Nunito', sans-serif; font-size:16px; font-weight:900; color:var(--gray-900);">🛒 LISTA DE COMPRAS TOTAL CONSOLIDADA</h3>
-        <span style="font-size:11px; font-weight:800; background:var(--yellow); padding:3px 8px; border-radius:12px;">${formattedFilterDate}</span>
-      </div>
-      <p style="font-size:12px; color:var(--gray-600); margin-bottom:12px;">Soma automática de todos os setores que enviaram solicitação para este dia.</p>
-  `;
-
-  categories.forEach(c => {
-    const catItems = Object.values(totalMap).filter(i => i.cat === c.name);
-    if (catItems.length > 0) {
-      sumHtml += `<div style="font-weight:900; font-size:11px; color:var(--red); text-transform:uppercase; margin-top:10px; margin-bottom:4px;">${c.name}</div>`;
-      catItems.forEach(i => {
-        const rolesList = Array.from(i.roles).join(', ');
-        sumHtml += `
-          <div style="display:flex; justify-content:space-between; align-items:center; background:var(--white); padding:8px 12px; border-radius:var(--radius-sm); margin-bottom:4px; font-size:13px; box-shadow:var(--shadow-sm);">
-            <div>
-              <b>${i.name}</b>
-              <div style="font-size:10px; color:var(--gray-400);">Setores: ${rolesList}</div>
-            </div>
-            <span style="font-weight:900; color:var(--red); font-size:14px;">${i.qty} ${i.unit}</span>
-          </div>
-        `;
-      });
+    if (status === 'bought') {
+      boughtItems.push(`✅ *${prodName}*: Comprado ${boughtQty} ${t.unit} (Solicitado: ${t.qty} ${t.unit})`);
+    } else if (status === 'missing') {
+      missingItems.push(`❌ *${prodName}*: FALTOU (Solicitado: ${t.qty} ${t.unit})`);
+    } else {
+      pendingItems.push(`⚪ *${prodName}*: ${t.qty} ${t.unit}`);
     }
   });
 
+  if (boughtItems.length > 0) {
+    msg += `*ITENS COMPRADOS:*\n` + boughtItems.join('\n') + `\n\n`;
+  }
+
+  if (missingItems.length > 0) {
+    msg += `*ITENS EM FALTA:*\n` + missingItems.join('\n') + `\n\n`;
+  }
+
+  if (pendingItems.length > 0) {
+    msg += `*NÃO CHECADOS / PENDENTES:*\n` + pendingItems.join('\n') + `\n\n`;
+  }
+
+  msg += `-----------------------------------\n*Salgados do Ponto — Gestão de Compras*`;
+
+  navigator.clipboard.writeText(msg);
+  showToast("Resumo de compras copiado para o WhatsApp!");
+};
+
+// --- HISTÓRICO & CONSOLIDAÇÃO DA DATA ---
+window.renderHistory = () => {
+  const selectedDate = document.getElementById('history-date-filter').value;
+  const body = document.getElementById('history-body');
+  const summaryBox = document.getElementById('history-summary-box');
+
+  const ordersForDate = savedOrders.filter(o => o.date === selectedDate);
+
+  if (ordersForDate.length === 0) {
+    summaryBox.innerHTML = '';
+    body.innerHTML = `<div style="text-align:center; padding:40px; color:var(--gray-400);">Nenhum pedido registrado para ${selectedDate}.</div>`;
+    return;
+  }
+
+  // Agrupamento consolidado das quantidades totais do dia
+  const totals = {};
+  ordersForDate.forEach(o => {
+    o.items.forEach(i => {
+      if(!totals[i.name]) totals[i.name] = { qty: 0, unit: i.unit, cat: i.cat };
+      totals[i.name].qty += Number(i.qty);
+    });
+  });
+
+  let sumHtml = `<div style="background:var(--yellow-light); border:1px solid #fef08a; padding:16px; border-radius:var(--radius-md);">`;
+  sumHtml += `<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">`;
+  sumHtml += `<div><b style="color:var(--gray-900); font-size:14px;">📦 CONSOLIDADO TOTAL DE COMPRAS (${selectedDate})</b><br>`;
+  sumHtml += `<span style="font-size:12px; color:var(--gray-600);">${ordersForDate.length} setor(es) enviaram pedidos.</span></div>`;
   sumHtml += `</div>`;
-  summaryBox.innerHTML = sumHtml;
 
-  // MONTA OS CARDS INDIVIDUAIS DE CADA SETOR
-  let historyCardsHtml = '<h4 style="font-family:\'Nunito\', sans-serif; font-weight:800; color:var(--gray-600); margin:16px 0 8px 0; font-size:13px;">PEDIDOS INDIVIDUAIS POR SETOR</h4>';
+  sumHtml += `<button class="btn btn-primary" style="padding:8px 12px; font-size:12px; margin-bottom:12px;" onclick="window.copyPurchasesSummaryToWhatsApp('${selectedDate}', ${JSON.stringify(totals).replace(/"/g, '&quot;')})">📲 Copiar Resumo de Compras (WhatsApp)</button>`;
 
-  filteredOrders.forEach(ord => {
-    historyCardsHtml += `
-      <div class="history-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-100); padding-bottom:8px; margin-bottom:8px;">
-          <div>
-            <b style="font-size:14px; color:var(--red);">${ord.userRole}</b>
-            <div style="font-size:11px; color:var(--gray-600);">Resp: ${ord.user}</div>
-          </div>
-          <span style="font-size:11px; font-weight:700; color:var(--gray-400);">${new Date(ord.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+  sumHtml += `<div style="margin-top:8px;">`;
+
+  Object.keys(totals).forEach(prodName => {
+    const t = totals[prodName];
+    const docId = `${selectedDate}_${encodeURIComponent(prodName)}`;
+    const pData = purchasesData[docId] || {};
+    const status = pData.status || 'neutral';
+    const boughtQty = pData.boughtQty !== undefined && pData.boughtQty !== null ? pData.boughtQty : t.qty;
+
+    sumHtml += `
+      <div class="purchase-item-row">
+        <div class="purchase-item-main">
+          <span style="font-size:13px; font-weight:700;">${prodName}</span>
+          <span style="font-size:12px; font-weight:800; color:var(--gray-600);">Ped: ${t.qty} ${t.unit}</span>
         </div>
-        ${ord.obs ? `<div style="font-size:12px; font-style:italic; color:var(--gray-600); margin-bottom:8px; background:var(--gray-50); padding:6px; border-radius:6px;">💬 "${ord.obs}"</div>` : ''}
-        ${ord.items.map(i => `
-          <div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;">
-            <span>• ${i.name}</span>
-            <b>${i.qty} ${i.unit}</b>
-          </div>
-        `).join('')}
+        <div class="purchase-actions">
+          <label style="font-size:11px; font-weight:800; color:var(--gray-600);">Comprado:</label>
+          <input type="number" class="input-bought-qty" value="${boughtQty}" placeholder="${t.qty}" onchange="window.updatePurchaseQty('${selectedDate}', '${prodName.replace(/'/g, "\\'")}', this.value)">
+          <span style="font-size:11px; font-weight:800; color:var(--gray-600);">${t.unit}</span>
+          
+          <button class="btn-check-status ${status === 'bought' ? 'bought' : 'neutral'}" onclick="window.updatePurchaseStatus('${selectedDate}', '${prodName.replace(/'/g, "\\'")}', 'bought')">
+            ${status === 'bought' ? '✅ Comprado' : '✓'}
+          </button>
+
+          <button class="btn-check-status ${status === 'missing' ? 'missing' : 'neutral'}" onclick="window.updatePurchaseStatus('${selectedDate}', '${prodName.replace(/'/g, "\\'")}', 'missing')">
+            ${status === 'missing' ? '❌ Faltou' : '✕'}
+          </button>
+        </div>
       </div>
     `;
   });
 
-  historyBody.innerHTML = historyCardsHtml;
+  sumHtml += `</div></div>`;
+  summaryBox.innerHTML = sumHtml;
+
+  // Listagem detalhada dos pedidos por setor
+  body.innerHTML = ordersForDate.map(o => `
+    <div class="history-card">
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--gray-100); padding-bottom:8px; margin-bottom:8px;">
+        <div>
+          <b style="color:var(--red);">${o.userRole}</b><br>
+          <span style="font-size:12px; color:var(--gray-600);">${o.user}</span>
+        </div>
+        <button onclick="window.deleteOrder('${o.fbId}')" style="background:none; border:none; color:var(--red); font-size:12px; cursor:pointer; font-weight:800;">Excluir</button>
+      </div>
+      ${o.items.map(i => `<div style="font-size:13px;">• ${i.name}: <b>${i.qty} ${i.unit}</b></div>`).join('')}
+      ${o.obs ? `<div style="font-size:12px; color:var(--gray-600); margin-top:6px; font-style:italic;">Obs: ${o.obs}</div>` : ''}
+    </div>
+  `).join('');
 };
 
-// --- RENDERS ---
-function renderOrder() {
-  const formattedDate = date ? date.split('-').reverse().join('/') : '';
-  document.getElementById('order-info').textContent = `${user || 'Usuário'} (${userRole}) • ${formattedDate}`;
-  const cont = document.getElementById('order-products-scroller');
-  
-  if (categories.length === 0) {
-      cont.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhuma categoria cadastrada.</p>';
-      return;
+window.deleteOrder = async (fbId) => {
+  if(confirm("Deseja realmente remover este pedido do histórico?")) {
+    await deleteDoc(doc(db, "orders", fbId));
+    showToast("Pedido removido!");
   }
-
-  const currentRole = (userRole || 'TODAS').trim().toUpperCase();
-
-  const filteredProducts = products.filter(p => {
-      let prodRoles = [];
-      if (Array.isArray(p.roles)) {
-        prodRoles = p.roles.map(r => r.trim().toUpperCase());
-      } else if (p.role) {
-        prodRoles = p.role.split(',').map(r => r.trim().toUpperCase());
-      } else {
-        prodRoles = ['TODAS'];
-      }
-
-      if (currentRole === 'TODAS') return true;
-      return prodRoles.includes('TODAS') || prodRoles.includes(currentRole);
-  });
-
-  let totalVisible = 0;
-
-  const htmlContent = categories.map(c => {
-      const pList = filteredProducts.filter(p => p.cat === c.name).sort((a,b) => (a.order||0) - (b.order||0));
-      if (pList.length === 0) return '';
-      totalVisible += pList.length;
-
-      return `
-        <div class="order-cat-group">
-            <div class="order-cat-label">${c.name}</div>
-            ${pList.map(p => `
-                <div class="product-item">
-                  <div>
-                    <b>${p.name}</b><br>
-                    <span class="unit-badge">${p.unit}</span>
-                  </div>
-                  <div class="qty-controls">
-                    <button class="btn-qty btn-qty-minus" onclick="window.chg('${p.id}', -1)">-</button>
-                    <span class="qty-val">${quantities[p.id] || 0}</span>
-                    <button class="btn-qty btn-qty-plus" onclick="window.chg('${p.id}', 1)">+</button>
-                  </div>
-                </div>`).join('')}
-        </div>`;
-  }).join('');
-
-  if (totalVisible === 0) {
-      cont.innerHTML = '<p style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum produto cadastrado para a área selecionada.</p>';
-  } else {
-      cont.innerHTML = htmlContent;
-  }
-}
-
-function renderCatalog() {
-    const cont = document.getElementById('catalog-grouped');
-    cont.innerHTML = categories.map((c, idx) => {
-        const pList = products.filter(p => p.cat === c.name).sort((a,b) => (a.order||0) - (b.order||0));
-        return `
-            <div class="cat-group">
-                <div class="cat-header">
-                    <span class="cat-title">${c.name}</span>
-                    <div class="order-controls">
-                        <button class="btn-order" onclick="window.moveCat(${idx}, -1)">▲</button>
-                        <button class="btn-order" onclick="window.moveCat(${idx}, 1)">▼</button>
-                        <button class="btn-order" style="color:var(--red)" onclick="window.delCategory('${c.fbId}', '${c.name}')">🗑️</button>
-                    </div>
-                </div>
-                ${pList.map(p => {
-                    const displayRoles = Array.isArray(p.roles) ? p.roles.join(', ') : (p.role || 'TODAS');
-                    return `
-                    <div class="product-item">
-                        <div style="display:flex; align-items:center; gap:12px;">
-                            <div class="order-controls" style="flex-direction:column; gap:2px;">
-                                <button class="btn-order" style="height:16px; width:22px; font-size:8px;" onclick="window.moveProd('${p.id}', '${c.name}', -1)">▲</button>
-                                <button class="btn-order" style="height:16px; width:22px; font-size:8px;" onclick="window.moveProd('${p.id}', '${c.name}', 1)">▼</button>
-                            </div>
-                            <div>
-                              <b>${p.name}</b><br>
-                              <span class="unit-badge">${p.unit}</span>
-                              <span class="role-badge">${displayRoles}</span>
-                            </div>
-                        </div>
-                        <div class="menu-dots" onclick="window.toggleMenu(event, '${p.id}')">⋮
-                            <div class="dropdown" id="drop-${p.id}">
-                                <div class="dropdown-item" onclick="window.openEdit('${p.id}')">✏️ Editar</div>
-                                <div class="dropdown-item" onclick="window.duplicateProduct('${p.id}')">📋 Duplicar</div>
-                                <div class="dropdown-item" style="color:var(--red)" onclick="window.delProduct('${p.id}')">🗑️ Excluir</div>
-                            </div>
-                        </div>
-                    </div>`;
-                }).join('')}
-            </div>`;
-    }).join('');
-}
-
-function renderReview() {
-    let h = '';
-    categories.forEach(c => {
-        const items = products.filter(p => p.cat === c.name && quantities[p.id]);
-        if(items.length) {
-            h += `<div style="margin-top:16px; color:var(--red); font-weight:800; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;">${c.name}</div>`;
-            items.forEach(p => h += `
-              <div class="product-item" style="margin-top:6px; margin-bottom:0;">
-                <span>${p.name}</span>
-                <b>${quantities[p.id]} ${p.unit}</b>
-              </div>`);
-        }
-    });
-    document.getElementById('review-body').innerHTML = h || '<div style="text-align:center; padding:30px 20px; color:var(--gray-400); font-weight:600;">Nenhum item selecionado no pedido.</div>';
-}
+};
 </script>
 </body>
 </html>
