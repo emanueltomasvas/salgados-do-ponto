@@ -168,6 +168,15 @@
     border: 1.5px solid var(--gray-200); 
   }
 
+  .btn-green {
+    background: var(--green);
+    color: var(--white);
+  }
+
+  .btn-green:hover {
+    background: #15803d;
+  }
+
   .field { 
     margin-bottom: 14px; 
   }
@@ -563,7 +572,6 @@
     border: 1px solid var(--gray-200);
   }
 
-  /* Estilos do Consolidado de Compras */
   .purchase-item-row {
     display: flex;
     flex-direction: column;
@@ -682,6 +690,11 @@
       <div id="order-info" class="user-badge-bar"></div>
     </div>
     <div class="body">
+      <!-- Botão para Cadastrar Produto in loco -->
+      <button class="btn btn-green" style="margin-bottom:16px;" onclick="window.openQuickAddModal()">
+        ➕ Cadastrar Novo Item no Banco
+      </button>
+
       <div id="order-products-scroller"></div>
       
       <div class="field" style="margin-top:24px; padding-top:16px; border-top: 1px solid var(--gray-200);">
@@ -805,6 +818,49 @@
   </div>
 </div>
 
+<!-- MODAL CADASTRO RÁPIDO NA ABA PEDIDOS -->
+<div class="edit-modal-overlay" id="quick-add-overlay">
+  <div class="edit-modal">
+    <h3 style="margin-bottom:12px; font-family:'Nunito', sans-serif; font-weight:800; color:var(--gray-900);">Novo Item no Banco</h3>
+    <p style="font-size:12px; color:var(--gray-600); margin-bottom:16px;">
+      O item será salvo no banco de dados para os próximos pedidos e já entrará na sua contagem atual.
+    </p>
+
+    <div class="field">
+      <label>Nome do Produto</label>
+      <input type="text" id="quick-prod-name" placeholder="Ex: Queijo Mussarela Fatiado">
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <div class="field" style="flex:1;">
+        <label>Categoria</label>
+        <select id="quick-prod-cat"></select>
+      </div>
+      <div class="field" style="flex:1;">
+        <label>Unidade</label>
+        <select id="quick-prod-unit">
+          <option>un</option>
+          <option>cx</option>
+          <option>fardo</option>
+          <option>kg</option>
+          <option>g</option>
+          <option>l</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Quantidade Solicitada / Contada Agora</label>
+      <input type="number" id="quick-prod-qty" placeholder="Ex: 5" value="1">
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn btn-secondary" onclick="window.closeQuickAddModal()">Cancelar</button>
+      <button class="btn btn-green" onclick="window.saveQuickAddProduct()">Cadastrar & Incluir</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -824,15 +880,13 @@ const db = getFirestore(app);
 
 let products = [], categories = [], roles = [], quantities = {}, user = '', userRole = 'TODAS', date = '', editingId = null;
 let savedOrders = [];
-let purchasesData = {}; // Armazena estado das compras do consolidado (Firebase)
+let purchasesData = {}; 
 let generatedSummaryText = '';
 
-// Data de hoje default em AAAA-MM-DD
 const todayStr = new Date().toISOString().split('T')[0];
 document.getElementById('login-date').value = todayStr;
 document.getElementById('history-date-filter').value = todayStr;
 
-// Utility toast
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -840,7 +894,6 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-// Data listeners
 onSnapshot(query(collection(db, "roles")), snap => {
   roles = snap.docs.map(d => ({ fbId: d.id, ...d.data() }));
   renderRolesDropdowns();
@@ -879,9 +932,9 @@ function renderCatDropdowns() {
   const opts = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
   document.getElementById('new-cat').innerHTML = opts;
   document.getElementById('edit-cat').innerHTML = opts;
+  document.getElementById('quick-prod-cat').innerHTML = opts;
 }
 
-// --- CHECAGEM DE SETORES NA HOME ---
 window.updateStatusList = () => {
   const selectedDate = document.getElementById('login-date').value;
   const container = document.getElementById('status-list-container');
@@ -911,7 +964,6 @@ window.updateStatusList = () => {
   }).join('');
 };
 
-// --- CORE NAVIGATION ---
 window.doLogin = () => {
   user = document.getElementById('login-name').value;
   userRole = document.getElementById('login-role').value;
@@ -936,7 +988,6 @@ window.backToHome = () => {
   window.navigate('login');
 };
 
-// --- ÁREAS / SETORES ---
 window.addRole = async () => {
   const n = prompt("Nome da nova área (ex: Frente de Loja, Confeitaria, Salgaderia, Estoque, Escritório):");
   if(n) {
@@ -1032,7 +1083,6 @@ function getSelectedRoles(containerId) {
   return values;
 }
 
-// --- CATEGORIAS ---
 window.addCategory = async () => {
     const n = prompt("Nome da nova categoria:");
     if(n) {
@@ -1057,7 +1107,6 @@ window.moveCat = async (index, direction) => {
     await updateDoc(doc(db, "categories", cat2.fbId), { order: index });
 };
 
-// --- PRODUTOS ---
 window.addProduct = async () => {
   const name = document.getElementById('new-name').value;
   const cat = document.getElementById('new-cat').value;
@@ -1069,6 +1118,51 @@ window.addProduct = async () => {
   await setDoc(doc(db, "products", id), { id, name, cat, unit, roles: selectedRoles, role: selectedRoles.join(', '), order: catProds.length });
   document.getElementById('new-name').value = '';
   showToast("Produto Salvo!");
+};
+
+// --- MODAL DE CADASTRO RÁPIDO NA ABA DE PEDIDOS ---
+window.openQuickAddModal = () => {
+  document.getElementById('quick-prod-name').value = '';
+  document.getElementById('quick-prod-qty').value = '1';
+  document.getElementById('quick-add-overlay').classList.add('open');
+};
+
+window.closeQuickAddModal = () => {
+  document.getElementById('quick-add-overlay').classList.remove('open');
+};
+
+window.saveQuickAddProduct = async () => {
+  const name = document.getElementById('quick-prod-name').value.trim();
+  const cat = document.getElementById('quick-prod-cat').value;
+  const unit = document.getElementById('quick-prod-unit').value;
+  const qty = Number(document.getElementById('quick-prod-qty').value);
+
+  if(!name) return showToast("Digite o nome do produto!");
+  if(isNaN(qty) || qty <= 0) return showToast("Digite uma quantidade válida!");
+
+  const id = 'p' + Date.now();
+  const catProds = products.filter(p => p.cat === cat);
+
+  // Define a área atual como destino do produto cadastrado
+  const selectedRoles = [userRole];
+
+  // 1. Salva no banco do Firebase para os próximos pedidos
+  await setDoc(doc(db, "products", id), { 
+    id, 
+    name, 
+    cat, 
+    unit, 
+    roles: selectedRoles, 
+    role: selectedRoles.join(', '), 
+    order: catProds.length 
+  });
+
+  // 2. Adiciona diretamente na contagem do pedido atual
+  quantities[id] = qty;
+
+  window.closeQuickAddModal();
+  showToast("Produto cadastrado no banco e adicionado ao pedido!");
+  renderOrder();
 };
 
 window.moveProd = async (prodId, catName, direction) => {
@@ -1151,7 +1245,6 @@ window.deleteProduct = async (id) => {
     }
 };
 
-// --- RENDER PEDIDO ---
 function renderOrder() {
   document.getElementById('order-info').innerHTML = `👤 ${user} &nbsp;|&nbsp; 📍 ${userRole} &nbsp;|&nbsp; 📅 ${date}`;
   const scroller = document.getElementById('order-products-scroller');
@@ -1163,7 +1256,7 @@ function renderOrder() {
   });
 
   if (filteredProds.length === 0) {
-    scroller.innerHTML = '<div style="text-align:center; padding:30px; color:var(--gray-400);">Nenhum produto cadastrado para esta área.</div>';
+    scroller.innerHTML = '<div style="text-align:center; padding:30px; color:var(--gray-400);">Nenhum produto cadastrado para esta área. Use o botão acima para cadastrar um.</div>';
     return;
   }
 
@@ -1201,7 +1294,6 @@ window.updateQty = (id, delta) => {
   renderOrder();
 };
 
-// --- CATALOGO ---
 function renderCatalog() {
   const cont = document.getElementById('catalog-grouped');
   cont.innerHTML = '';
@@ -1248,7 +1340,6 @@ function renderCatalog() {
   });
 }
 
-// --- REVISÃO ---
 function renderReview() {
   const body = document.getElementById('review-body');
   const keys = Object.keys(quantities);
@@ -1280,7 +1371,6 @@ function renderReview() {
   body.innerHTML = html;
 }
 
-// --- SALVAR & CONSOLIDAR ---
 window.finalizeAndSaveOrder = async () => {
   const keys = Object.keys(quantities);
   if(keys.length === 0) return alert("Selecione pelo menos um produto!");
@@ -1313,7 +1403,6 @@ window.copyMessage = () => {
   showToast("Copiado para a área de transferência!");
 };
 
-// --- ATUALIZAÇÕES DE COMPRA NO CONSOLIDADO ---
 window.updatePurchaseStatus = async (dateKey, prodName, status) => {
   const docId = `${dateKey}_${encodeURIComponent(prodName)}`;
   const current = purchasesData[docId] || {};
@@ -1338,7 +1427,6 @@ window.updatePurchaseQty = async (dateKey, prodName, qtyVal) => {
   }, { merge: true });
 };
 
-// Adiciona um item extra (fora do pedido)
 window.addExtraPurchaseItem = async (dateKey) => {
   const name = document.getElementById('extra-prod-name').value.trim();
   const qty = document.getElementById('extra-prod-qty').value;
@@ -1377,7 +1465,6 @@ window.copyPurchasesSummaryToWhatsApp = (selectedDate, totals) => {
   let missingItems = [];
   let pendingItems = [];
 
-  // Itens Solicitados
   Object.keys(totals).forEach(prodName => {
     const t = totals[prodName];
     const docId = `${selectedDate}_${encodeURIComponent(prodName)}`;
@@ -1394,7 +1481,6 @@ window.copyPurchasesSummaryToWhatsApp = (selectedDate, totals) => {
     }
   });
 
-  // Itens Extras (NÃO Solicitados)
   Object.keys(purchasesData).forEach(docId => {
     const pData = purchasesData[docId];
     if (pData.date === selectedDate && pData.isExtra) {
@@ -1420,7 +1506,6 @@ window.copyPurchasesSummaryToWhatsApp = (selectedDate, totals) => {
   showToast("Resumo de compras copiado para o WhatsApp!");
 };
 
-// --- HISTÓRICO & CONSOLIDAÇÃO DA DATA ---
 window.renderHistory = () => {
   const selectedDate = document.getElementById('history-date-filter').value;
   const body = document.getElementById('history-body');
@@ -1434,7 +1519,6 @@ window.renderHistory = () => {
     return;
   }
 
-  // Agrupamento consolidado das quantidades totais do dia
   const totals = {};
   ordersForDate.forEach(o => {
     o.items.forEach(i => {
@@ -1453,7 +1537,6 @@ window.renderHistory = () => {
 
   sumHtml += `<div style="margin-top:8px;">`;
 
-  // Renderiza produtos solicitados pelos setores
   Object.keys(totals).forEach(prodName => {
     const t = totals[prodName];
     const docId = `${selectedDate}_${encodeURIComponent(prodName)}`;
@@ -1484,7 +1567,6 @@ window.renderHistory = () => {
     `;
   });
 
-  // Renderiza produtos EXTRAS (comprados sem solicitação)
   Object.keys(purchasesData).forEach(docId => {
     const pData = purchasesData[docId];
     if (pData.date === selectedDate && pData.isExtra) {
@@ -1507,7 +1589,6 @@ window.renderHistory = () => {
 
   sumHtml += `</div>`;
 
-  // Formulário para Inserção de Produtos Extras
   sumHtml += `
     <div class="add-extra-box">
       <label style="font-size:11px; font-weight:800; color:var(--green); text-transform:uppercase; display:block; margin-bottom:8px;">
@@ -1536,7 +1617,6 @@ window.renderHistory = () => {
   sumHtml += `</div>`;
   summaryBox.innerHTML = sumHtml;
 
-  // Listagem detalhada dos pedidos por setor
   body.innerHTML = ordersForDate.map(o => `
     <div class="history-card">
       <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--gray-100); padding-bottom:8px; margin-bottom:8px;">
